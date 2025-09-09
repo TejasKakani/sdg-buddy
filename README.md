@@ -1,36 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+🌱 SDG BuddyYour personal, gamified tracker for contributing to the UN Sustainable Development Goals.🌍 Project Overview"SDG Buddy" is a mobile and web application designed to translate the United Nations' 2030 Agenda for Sustainable Development into tangible, everyday actions. It serves as a personal tracker, enabling individuals to log their sustainable behaviors and quantify their contribution toward achieving the 17 Sustainable Development Goals (SDGs).Unlike apps that focus narrowly on environmental metrics, "SDG Buddy" takes a holistic approach, encompassing the full, interconnected spectrum of the SDGs, including social and economic goals such as Quality Education (SDG 4), Gender Equality (SDG 5), and Reduced Inequalities (SDG 10).The ultimate goal is to empower a global community of users to understand, track, and amplify their personal impact on a sustainable future.✨ Key FeaturesHolistic Action Logging: Log daily activities across all 17 SDGs, from recycling and conserving water to volunteering and promoting equality.Gamified Motivation: Stay engaged with a system of points, streaks, badges, and leaderboards to make habit-building fun and rewarding.Impact Visualization: A personal dashboard translates your actions into real-world, understandable metrics (e.g., "kg of CO2 avoided," "liters of water saved").Community & Collaboration: Form teams, participate in challenges, and see the collective impact of the entire "SDG Buddy" community.Educational Insights: Learn about the specific SDG targets your actions contribute to and discover new ways to make a difference.Sleek & Modern UI: A beautiful, tech-forward interface designed to inspire and delight users.🚀 Tech StackThis project is built with a modern, scalable, and type-safe technology stack:Framework: Next.js (App Router)Library: ReactLanguage: TypeScriptStyling: Tailwind CSS📸 Screenshots(Placeholder: Add screenshots of your application here. The professional login/signup screens and the main dashboard would be perfect.)📂 Project StructureThe project follows the standard Next.js App Router structure:.
+├── app/                  # Main application routes (pages, layouts, globals.css)
+├── components/           # Reusable React components (e.g., LoginScreen, Dashboard)
+├── lib/                  # Utility functions and data (e.g., SDG data)
+├── public/               # Static assets (images, fonts)
+├── .eslintrc.json        # ESLint configuration
+├── next.config.js        # Next.js configuration
+├── package.json          # Project dependencies
+├── tailwind.config.js    # Tailwind CSS configuration
+└── tsconfig.json         # TypeScript configuration
+⚙️ Getting StartedTo get a local copy up and running, follow these simple steps.PrerequisitesNode.js (v18.x or later)npm or yarnInstallationClone the repository:git clone [https://github.com/your-username/sdg-buddy.git](https://github.com/your-username/sdg-buddy.git)
+Navigate to the project directory:cd sdg-buddy
+Install NPM packages:npm install
+Run the development server:npm run dev
+Open http://localhost:3000 with your browser to see the result.🤝 ContributingContributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".Fork the ProjectCreate your Feature Branch (git checkout -b feature/AmazingFeature)Commit your Changes (git commit -m 'Add some AmazingFeature')Push to the Branch (git push origin feature/AmazingFeature)Open a Pull Request📄 LicenseDistributed under the MIT License. See LICENSE file for more information.
