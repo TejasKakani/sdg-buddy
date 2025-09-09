@@ -60,19 +60,16 @@ sdg-buddy ├── app/              # Main application routes (pages, layouts,
    git clone https://github.com/your-username/sdg-buddy.git
 
 2. Navigate to the project directory:
-
-cd sdg-buddy
-
+   ```bash
+   cd sdg-buddy
 
 3. Install dependencies:
-
-npm install
-
+   ```bash
+   npm install
 
 4. Run the development server:
-
-npm run dev
-
+   ```bash
+   npm run dev
 
 5. Open http://localhost:3000 in your browser.
 
@@ -81,13 +78,13 @@ npm run dev
 
 ---
 
-🤝 Contributing
+### 🤝 Contributing
 
 Contributions are what make the open-source community amazing! Any contributions you make are greatly appreciated.
 
 If you have a suggestion to improve this project:
 
-Fork the repo
+### 🤝 Fork the repo
 
 Create your feature branch (git checkout -b feature/AmazingFeature)
 
@@ -103,12 +100,9 @@ You can also simply open an issue with the tag enhancement.
 
 ---
 
-📄 License
+### 📄 License
 
 Distributed under the MIT License.
 See the LICENSE file for more information.
 
 ---
-
-Do you also want me to **add GitHub-style badges** (like license, last commit, stars, issues) at the top of this file so it looks more professional when viewed on GitHub?
-
