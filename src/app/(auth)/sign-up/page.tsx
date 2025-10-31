@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // Consistent LeafIcon for branding
 export function LeafIcon() {
@@ -36,10 +37,49 @@ const sdgGoals = [
 ];
 
 export default function SignUpScreen() {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Your sign-up logic would go here
-    console.log("Sign-up form submitted");
+    setError(null);
+    setSuccess(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/users/sign-up', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!response.ok) {
+        let message = 'Failed to sign up';
+        try {
+          const data = await response.json();
+          if (typeof data === 'string') message = data;
+          else if (data?.error) message = data.error;
+        } catch {}
+        throw new Error(message);
+      }
+
+      setSuccess('Account created! Please check your email to verify your account.');
+      setName('');
+      setEmail('');
+      setPassword('');
+      // Optionally route to sign-in after a short delay
+      setTimeout(() => router.replace('/sign-in'), 2000);
+    } catch (e: any) {
+      setError(e?.message || 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -107,6 +147,8 @@ export default function SignUpScreen() {
                   id="fullName" type="text" required
                   className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all" 
                   placeholder="Your Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div>
@@ -115,6 +157,8 @@ export default function SignUpScreen() {
                   id="email-signup" type="email" required
                   className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all" 
                   placeholder="email@address.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div>
@@ -123,19 +167,28 @@ export default function SignUpScreen() {
                   id="password-signup" type="password" required
                   className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all" 
                   placeholder="Create a Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              {error && (
+                <p className="text-red-400 text-sm" role="alert">{error}</p>
+              )}
+              {success && (
+                <p className="text-emerald-400 text-sm" role="status">{success}</p>
+              )}
               <div className="pt-2">
                 <button 
                   type="submit" 
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-gray-900 bg-emerald-400 hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-emerald-400 transition-colors"
+                  disabled={isSubmitting}
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-gray-900 bg-emerald-400 hover:bg-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-emerald-400 transition-colors"
                 >
-                  Create My Impact Account
+                  {isSubmitting ? 'Creating Account…' : 'Create My Impact Account'}
                 </button>
               </div>
             </form>
-             <p className="mt-8 text-center text-sm text-gray-400">
-                Already have an account? <a href="#" className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Log In.</a>
+            <p className="mt-8 text-center text-sm text-gray-400">
+               Already have an account? <a href="/sign-in" className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Log In.</a>
             </p>
           </div>
         </div>

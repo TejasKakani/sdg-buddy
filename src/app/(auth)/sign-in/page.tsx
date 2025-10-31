@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 // Reusable SVG icon for branding consistency
 const LeafIcon = () => (
@@ -24,6 +25,11 @@ const LeafIcon = () => (
 export default function LoginScreen() {
   // State for the live counter
   const [actionsLogged, setActionsLogged] = useState(15482);
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Effect to simulate the live data ticker
   useEffect(() => {
@@ -35,10 +41,37 @@ export default function LoginScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Your login logic would go here
-    console.log("Login form submitted");
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/users/sign-in', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      console.log(response);
+
+      if (!response.ok) {
+        let message = 'Failed to sign in';
+        try {
+          const data = await response.json();
+          message = typeof data === 'string' ? data : (data?.error || message);
+        } catch {}
+        throw new Error(message);
+      }
+
+      router.replace('/');
+    } catch (e: any) {
+      setError(e?.message || 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -83,6 +116,8 @@ export default function LoginScreen() {
                 required
                 className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all" 
                 placeholder="email@address.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
@@ -93,14 +128,20 @@ export default function LoginScreen() {
                 required
                 className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all" 
                 placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {error && (
+              <p className="text-red-400 text-sm" role="alert">{error}</p>
+            )}
             <div className="pt-2">
               <button 
                 type="submit" 
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-gray-900 bg-emerald-400 hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-emerald-400 transition-colors"
+                disabled={isSubmitting}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-gray-900 bg-emerald-400 hover:bg-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-emerald-400 transition-colors"
               >
-                Login Securely
+                {isSubmitting ? 'Signing In…' : 'Login Securely'}
               </button>
             </div>
           </form>
@@ -112,8 +153,8 @@ export default function LoginScreen() {
              </p>
           </div>
         </div>
-         <p className="mt-6 text-center text-sm text-gray-400">
-            First time here? <a href="#" className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Create an account.</a>
+        <p className="mt-6 text-center text-sm text-gray-400">
+           First time here? <a href="/sign-up" className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors">Create an account.</a>
         </p>
       </div>
     </div>

@@ -4,13 +4,12 @@ import CallToActionSection from "@components/landingPage/CallToAction";
 import FeaturesSection from "@components/landingPage/Feature";
 import HeroSection from "@components/landingPage/Hero";
 import SdgShowcase from "@components/landingPage/Showcase";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const handleLoginClick = () => {
-    // In a real Next.js app, you'd use the useRouter hook for navigation.
-    // window.location.href is used here for simplicity.
-    console.log("Redirecting to login...");
-    // window.location.href = '/api/login';
+    router.push('/action');
   };
 
   return (
