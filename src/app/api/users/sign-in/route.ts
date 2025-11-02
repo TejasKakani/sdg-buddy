@@ -2,7 +2,7 @@ import { UserModel } from "@/models/user.model";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken"; 
+import {SignJWT} from "jose";
 
 export async function POST(
     req: NextRequest
@@ -34,9 +34,11 @@ export async function POST(
             id: user._id,
         }
 
-        const token = jwt.sign(tokenPayload, process.env.TOKEN_SECRET!, {
-            expiresIn: '1h'
-        });
+        const token = await new SignJWT(tokenPayload)
+                        .setProtectedHeader({ alg: 'HS256' })
+                        .setIssuedAt()
+                        .setExpirationTime('7d')
+                        .sign(new TextEncoder().encode(process.env.TOKEN_SECRET!))
 
         const response = NextResponse.json({
             message: "User signed in successfully",

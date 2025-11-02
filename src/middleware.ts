@@ -3,9 +3,9 @@ import type { NextRequest } from 'next/server'
 import getTokenPayload from '@/utils/getTokenPayload';
  
 // This function can be marked `async` if using `await` inside
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
 
-    const tokenData: any = getTokenPayload(request);
+    const tokenData = await getTokenPayload(request);
 
     const path = request.nextUrl.pathname;
 
@@ -17,13 +17,11 @@ export function middleware(request: NextRequest) {
 
     const isPublicPath = path ==='/sign-in' || path === '/sign-up' || path === '/verify-email';
 
-    const token = request.cookies.get('token')?.value || '';
-
-    if((isPublicPath && token)) {
+    if((isPublicPath && tokenData.status === 200)) {
         return NextResponse.redirect(new URL('/', request.url));
-    }
+      }
 
-    if(!isPublicPath && !token) {
+    if(!isPublicPath && tokenData.status !== 200) {
       return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
