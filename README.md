@@ -67,11 +67,13 @@ sdg-buddy ├── app/              # Main application routes (pages, layouts,
    ```bash
    npm install
 
-4. Run the development server:
+4. Create a `.env.local` file based on the provided `.env.example`, and fill in any required secrets and environment variables specific to your setup.
+
+5. Run the development server:
    ```bash
    npm run dev
 
-5. Open http://localhost:3000 in your browser.
+6. Open http://localhost:3000 in your browser.
 
 
 
