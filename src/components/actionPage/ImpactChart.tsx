@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
+import Image from "next/image";
 
 interface GoalData {
   id: string;
   label: string;
   color: string;
+  logo: string;
   data: number[];
 }
 
@@ -122,22 +124,35 @@ export default function ImpactChart() {
           </p>
         </div>
 
-        {/* Accessibility: Added a label mapped to the select ID */}
-        <div className="flex flex-col">
-          <label htmlFor="goal-selector" className="sr-only">Select a Goal to view</label>
-          <select
-            id="goal-selector"
-            disabled={isLoading || !!error}
-            className="p-2 border rounded-lg bg-slate-50 text-sm focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50 transition-all cursor-pointer text-emerald-500"
-            value={activeGoalId}
-            onChange={(e) => setActiveGoalId(e.target.value)}
-          >
-            {goals.map((goal) => (
-              <option key={goal.id} value={goal.id}>
-                Goal {goal.id.replace("goal", "")}: {goal.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col sm:items-end">
+          <p className="text-xs text-slate-500 mb-2">Select a goal to view</p>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            {goals.map((goal) => {
+              const isActive = goal.id === activeGoalId;
+              return (
+                <button
+                  key={goal.id}
+                  type="button"
+                  disabled={isLoading || !!error}
+                  onClick={() => setActiveGoalId(goal.id)}
+                  className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all disabled:opacity-50
+                    ${isActive ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300"}
+                  `}
+                  aria-pressed={isActive}
+                  aria-label={`Show chart for ${goal.label}`}
+                >
+                  <Image
+                    src={goal.logo}
+                    alt={`SDG icon for ${goal.label}`}
+                    width={20}
+                    height={20}
+                    className="w-5 h-5 rounded object-cover"
+                  />
+                  <span>{goal.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

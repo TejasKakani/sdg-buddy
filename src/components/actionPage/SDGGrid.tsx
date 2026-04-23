@@ -1,6 +1,6 @@
 "use client";
 
-import { SDGGoal } from "@/types/action";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { SDG_GOALS } from "@/constants/sdgGoals";
 
@@ -71,12 +71,17 @@ export default function SDGGrid() {
             <div key={goal.id} className="relative group flex flex-col items-center">
               
               <div
-                className={`w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold mx-auto transition-all duration-200 shadow-sm cursor-default
+                className={`w-16 h-16 rounded-lg overflow-hidden mx-auto transition-all duration-200 shadow-sm cursor-default
                   ${goal.points > 0 ? 'ring-2 ring-offset-2 ring-emerald-500 scale-105' : 'opacity-70 hover:opacity-100'}
                 `}
-                style={{ backgroundColor: goal.color }}
               >
-                {goal.id}
+                <Image
+                  src={goal.logo}
+                  alt={`SDG ${goal.id}: ${goal.name}`}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-cover"
+                />
               </div>
 
               {/* 3. Fixed Tooltip Positioning & Styling */}

@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // 1. Import Next.js Link
+import Image from 'next/image';
+import { SDG_GOALS } from '@/constants/sdgGoals';
 
 // Consistent LeafIcon for branding (Consider moving this to src/components/ui/LeafIcon.tsx!)
 export function LeafIcon() {
@@ -25,17 +27,9 @@ export function LeafIcon() {
   );
 }
 
-// Array of SDG data for the visual panel
-const sdgGoals = [
-  { id: 1, title: "No Poverty", color: "#E5243B" },
-  { id: 4, title: "Quality Education", color: "#C5192D" },
-  { id: 5, title: "Gender Equality", color: "#FF3A21" },
-  { id: 10, title: "Reduced Inequalities", color: "#DD1367" },
-  { id: 13, title: "Climate Action", color: "#3F7E44" },
-  { id: 14, title: "Life Below Water", color: "#0A97D9" },
-  { id: 15, title: "Life on Land", color: "#56C02B" },
-  { id: 17, title: "Partnerships", color: "#19486A" },
-];
+// Subset of SDGs shown on the sign-up screen
+const featuredGoalIds = [1, 4, 5, 10, 13, 14, 15, 17];
+const sdgGoals = SDG_GOALS.filter((goal) => featuredGoalIds.includes(goal.id));
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -130,13 +124,14 @@ export default function SignUpScreen() {
             <div className="grid grid-cols-4 gap-4">
               {sdgGoals.map(goal => (
                 <div key={goal.id} className="group flex flex-col items-center text-center p-2 rounded-lg transition-all duration-300 hover:bg-white/5">
-                   <div 
-                     className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg mb-2 transition-all duration-300 group-hover:scale-110"
-                     style={{ backgroundColor: goal.color }}
-                   >
-                     {goal.id}
-                   </div>
-                   <p className="text-xs text-gray-400 group-hover:text-white transition-colors">{goal.title}</p>
+                   <Image
+                     src={goal.logo}
+                     alt={`SDG ${goal.id}: ${goal.name}`}
+                     width={48}
+                     height={48}
+                     className="w-12 h-12 rounded-lg object-cover mb-2 transition-all duration-300 group-hover:scale-110"
+                   />
+                   <p className="text-xs text-gray-400 group-hover:text-white transition-colors">{goal.name}</p>
                 </div>
               ))}
             </div>

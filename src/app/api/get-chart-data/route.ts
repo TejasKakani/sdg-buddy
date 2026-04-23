@@ -1,55 +1,23 @@
 import { ActionModel } from "@/models/action.model";
+import { getSDGColor, getSDGLogo, getSDGName, SDG_GOALS } from "@/constants/sdgGoals";
 import getTokenPayload from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import mongoose from "mongoose";
 import { NextRequest } from "next/server";
 
-const SDG_LABELS: Record<number, string> = {
-    1: "No Poverty",
-    2: "Zero Hunger",
-    3: "Good Health and Well-being",
-    4: "Quality Education",
-    5: "Gender Equality",
-    6: "Clean Water and Sanitation",
-    7: "Affordable and Clean Energy",
-    8: "Decent Work and Economic Growth",
-    9: "Industry, Innovation and Infrastructure",
-    10: "Reduced Inequality",
-    11: "Sustainable Cities and Communities",
-    12: "Responsible Consumption and Production",
-    13: "Climate Action",
-    14: "Life Below Water",
-    15: "Life on Land",
-    16: "Peace, Justice and Strong Institutions",
-    17: "Partnerships for the Goals"
-};  
-
-function getSDGLabel(id: number) {
-  return SDG_LABELS[id] || `SDG ${id}`;
-}
-
-function getSDGColor(id: number) {
-  const colors = [
-    "#E5243B", "#DDA63A", "#4C9F38", "#C5192D", "#FF3A21",
-    "#26BDE2", "#FCC30B", "#A21942", "#FD6925", "#DD1367",
-    "#FD9D24", "#BF8B2E", "#3F7E44", "#0A97D9", "#56C02B",
-    "#00689D", "#19486A"
-  ];
-  return colors[id - 1] || colors[0];
-}
-
 function formatDataForFrontend(stats: any[]) {
   const months = 12;
   const goalTemplate = (id: number) => ({
     id: `goal${id}`,
-    label: getSDGLabel(id), // Helper for names like "No Poverty"
-    color: getSDGColor(id), // Helper for SDG specific hex codes
+    label: getSDGName(id),
+    color: getSDGColor(id),
+    logo: getSDGLogo(id),
     data: Array(months).fill(0)
   });
 
   const resultMap: Record<number, any> = {};
-  for (let i = 1; i <= 17; i++) {
-    resultMap[i] = goalTemplate(i);
+  for (const goal of SDG_GOALS) {
+    resultMap[goal.id] = goalTemplate(goal.id);
   }
 
   stats.forEach(stat => {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { SDG_GOALS } from "@/constants/sdgGoals";
 
 const SdgShowcase = () => {
@@ -33,12 +34,13 @@ const SdgShowcase = () => {
             className="text-center group border-none bg-transparent cursor-pointer p-0" 
             aria-label={`View description for ${sdg.name}`}
           >
-            <div
-              className="w-16 h-16 rounded-lg flex items-center justify-center mx-auto text-white font-bold text-xl shadow-md group-hover:scale-110 transition-transform"
-              style={{ backgroundColor: sdg.color }}
-            >
-              {sdg.id}
-            </div>
+            <Image
+              src={sdg.logo}
+              alt={`SDG ${sdg.id}: ${sdg.name}`}
+              width={64}
+              height={64}
+              className="w-16 h-16 rounded-lg object-cover shadow-md group-hover:scale-110 transition-transform"
+            />
           </button>
         ))}
       </div>
