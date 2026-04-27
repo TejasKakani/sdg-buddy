@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import InstallAppButton from "@/components/layout/InstallAppButton";
 
 interface Recommendation {
   sdgId: number;
@@ -116,15 +117,19 @@ export default function Header() {
         {!isLoading && (
           <>
             {user.name === "" ? (
-              <ButtonLink
-                href="/sign-in"
-                className="bg-emerald-600 hover:bg-emerald-700"
-                data-testid="link-header-login"
-              >
-                Sign In
-              </ButtonLink>
+              <div className="flex items-center gap-3">
+                <InstallAppButton />
+                <ButtonLink
+                  href="/sign-in"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  data-testid="link-header-login"
+                >
+                  Sign In
+                </ButtonLink>
+              </div>
             ) : (
               <div className="flex items-center space-x-4">
+                <InstallAppButton />
                 <button
                   type="button"
                   onClick={() => setIsRecommendationsOpen(true)}

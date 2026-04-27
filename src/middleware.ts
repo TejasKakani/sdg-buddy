@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
 
     const path = request.nextUrl.pathname;
 
-    if(path.startsWith('/_next/static/') || path.startsWith('/favicon.ico')) {
+    if(path.startsWith('/_next/static/') || path.startsWith('/logo.png')) {
         const response = NextResponse.next();
         response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
         return response;
