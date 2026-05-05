@@ -1,7 +1,7 @@
 import getTokenPayload from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextRequest, NextResponse } from "next/server";
-import { ActionModel } from "@/models/action.model";
+import { ProfileModel } from "@/models/profile.model";
 
 export async function GET(
     req: NextRequest
@@ -11,21 +11,28 @@ export async function GET(
         const tokenPayload = await getTokenPayload(req);
         const tokenPayloadJson = await tokenPayload.json().then(data => data);
         const userId = tokenPayloadJson.id;
-        const sdgData = await ActionModel.aggregate([
-            {$match: {user: new (require('mongoose').Types.ObjectId)(userId)}},
-            {$unwind: "$sdgs"},
-            {$group: {
-                _id: "$sdgs",
-                totalPoints: {$sum: "$points"},
-            }},
-            {$project: {
-                sdgId: "$_id",
-                points: "$totalPoints",
-                _id: 0
-            }},
-            {$sort: {sdgId: 1}}
-        ]);
-        return NextResponse.json(sdgData, {status: 200});
+        
+        // Read SDG progress directly from Profile instead of aggregating from Actions
+        const profile = await ProfileModel.findOne({ user: userId });
+        
+        if (!profile || !profile.sdgGrid) {
+            // Return empty array if no profile or sdgGrid exists
+            return NextResponse.json(
+                Array.from({ length: 17 }, (_, i) => ({
+                    sdgId: i + 1,
+                    points: 0
+                })),
+                { status: 200 }
+            );
+        }
+        
+        // Format the sdgGrid data to match the expected response format
+        const sdgData = profile.sdgGrid.map(entry => ({
+            sdgId: entry.sdgId,
+            points: entry.points
+        })).sort((a, b) => a.sdgId - b.sdgId);
+        
+        return NextResponse.json(sdgData, { status: 200 });
     }catch(err: any){
         return NextResponse.json({error: err.message}, {
             status: 500

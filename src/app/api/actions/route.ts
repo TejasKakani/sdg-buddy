@@ -54,6 +54,7 @@ export async function POST(
         const now = new Date();
         const today = new Date(now.setHours(0, 0, 0, 0));
         const lastAction = userProfile!.lastActivity ? new Date(userProfile!.lastActivity.setHours(0, 0, 0, 0)) : null;
+        
         if(userProfile){
             userProfile.totalPoints += action.points;
             const diffInDays = (today.getTime() - lastAction!.getTime()) / (1000 * 60 * 60 * 24);    
@@ -64,6 +65,49 @@ export async function POST(
             }
             userProfile.acheivements += 1;
             userProfile.lastActivity = new Date();
+            
+            // Update sdgGrid data
+            if (!userProfile.sdgGrid || userProfile.sdgGrid.length === 0) {
+                userProfile.sdgGrid = Array.from({ length: 17 }, (_, i) => ({
+                    sdgId: i + 1,
+                    points: 0
+                }));
+            }
+            
+            // Update points for each SDG in this action
+            action.sdgs.forEach((sdg: number) => {
+                const sdgEntry = userProfile.sdgGrid.find(entry => entry.sdgId === sdg);
+                if (sdgEntry) {
+                    sdgEntry.points += action.points;
+                } else {
+                    userProfile.sdgGrid.push({ sdgId: sdg, points: action.points });
+                }
+            });
+            
+            // Update yearlyMonthlyPoints data
+            const year = action.completedAt.getFullYear();
+            const month = action.completedAt.getMonth() + 1; // 1-12
+            
+            if (!userProfile.yearlyMonthlyPoints) {
+                userProfile.yearlyMonthlyPoints = {};
+            }
+            
+            if (!userProfile.yearlyMonthlyPoints[year]) {
+                userProfile.yearlyMonthlyPoints[year] = {};
+            }
+            
+            if (!userProfile.yearlyMonthlyPoints[year][month]) {
+                userProfile.yearlyMonthlyPoints[year][month] = {};
+            }
+            
+            // Add points to each SDG for this month
+            action.sdgs.forEach((sdg: number) => {
+                if (!userProfile.yearlyMonthlyPoints[year][month][sdg]) {
+                    userProfile.yearlyMonthlyPoints[year][month][sdg] = 0;
+                }
+                userProfile.yearlyMonthlyPoints[year][month][sdg] += action.points;
+            });
+            
             await userProfile.save();
         }
         return NextResponse.json({message: "Action logged successfully"}, {
