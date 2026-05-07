@@ -12,43 +12,63 @@ interface GoalData {
   data: number[];
 }
 
+type ChartResponse = {
+  years: number[];
+  selectedYear: number | null;
+  goals: GoalData[];
+};
+
 const LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function ImpactChart() {
   const [goals, setGoals] = useState<GoalData[]>([]);
-  // Start with an empty string, we will dynamically set this after fetching
-  const [activeGoalId, setActiveGoalId] = useState<string>(""); 
+  const [years, setYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [activeGoalId, setActiveGoalId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // Added error state
+  const [error, setError] = useState<string | null>(null);
 
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
 
-  // 1. Fetch data on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const res = await fetch('/api/get-chart-data');
-        if (!res.ok) throw new Error("Failed to fetch data");
-        
-        const data: GoalData[] = await res.json();
-        setGoals(data);
-        
-        // Dynamically set the active goal to the first item in the array
-        if (data && data.length > 0) {
-          setActiveGoalId(data[0].id);
-        }
-      } catch (err) {
-        console.error("Error fetching chart data:", err);
-        setError("Could not load impact data. Please try again later.");
-      } finally {
-        setIsLoading(false);
+  const fetchChartData = async (year?: number) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const query = year ? `?year=${year}` : "";
+      const res = await fetch(`/api/get-chart-data${query}`);
+      if (!res.ok) throw new Error("Failed to fetch data");
+
+      const data: ChartResponse = await res.json();
+      setYears(data.years);
+      setSelectedYear(data.selectedYear);
+      setGoals(data.goals);
+
+      if (data.goals.length > 0) {
+        setActiveGoalId((currentGoalId) => {
+          const stillExists = data.goals.some((goal) => goal.id === currentGoalId);
+          return stillExists ? currentGoalId : data.goals[0].id;
+        });
+      } else {
+        setActiveGoalId("");
       }
+    } catch (err) {
+      console.error("Error fetching chart data:", err);
+      setError("Could not load impact data. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const initialLoadId = window.setTimeout(() => {
+      void fetchChartData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(initialLoadId);
     };
-    fetchData();
   }, []);
 
   const activeGoal = goals.find((g) => g.id === activeGoalId);
@@ -116,17 +136,38 @@ export default function ImpactChart() {
   }, [activeGoal]);
 
   return (
-    <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-[400px]">
+    <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-100">
       <div className="flex flex-col sm:flex-row justify-between mb-8 gap-4">
         <div>
           <h3 className="text-xl font-bold text-emerald-600">Impact Tracking</h3>
           <p className="text-sm text-emerald-800">
-            {isLoading ? "Fetching data..." : `Monitoring ${activeGoal?.label || 'Goals'}`}
+            {isLoading ? "Fetching data..." : `Monitoring ${activeGoal?.label || "Goals"} in ${selectedYear ?? "all years"}`}
           </p>
         </div>
 
-        <div className="flex flex-col sm:items-end">
-          <p className="text-xs text-slate-500 mb-2">Select a goal to view</p>
+        <div className="flex flex-col gap-3 sm:items-end">
+          <div className="flex flex-col sm:items-end">
+            <label htmlFor="chart-year" className="text-xs text-slate-500 mb-2">Select year</label>
+            <select
+              id="chart-year"
+              value={selectedYear ?? ""}
+              disabled={isLoading || years.length === 0}
+              onChange={(event) => {
+                const nextYear = Number.parseInt(event.target.value, 10);
+                if (Number.isFinite(nextYear)) {
+                  fetchChartData(nextYear);
+                }
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 disabled:opacity-50"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex flex-wrap gap-2 sm:justify-end">
             {goals.map((goal) => {
               const isActive = goal.id === activeGoalId;

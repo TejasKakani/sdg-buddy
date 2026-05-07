@@ -29,14 +29,13 @@ export default function Leaderboard() {
         }
 
         const data = await res.json();
-        
-        // Defensive Check: Safely access nested properties using optional chaining (?.)
-        const rawLeaderboard = data?.leaderboard?.[0]?.leaderboard;
+
+        const rawLeaderboard = data?.leaderboard;
 
         if (Array.isArray(rawLeaderboard)) {
           const formattedLeaderboard = rawLeaderboard.map((user: ApiLeaderboardItem, index: number) => ({
             rank: index + 1,  
-            name: user.name === undefined ? "You" : user.name,
+            name: user.name || "Unknown user",
             points: user.totalPoints || 0,
           }));
           setLeaderboard(formattedLeaderboard);
@@ -56,26 +55,26 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-[300px] flex flex-col">
+    <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-75 flex flex-col">
       <h3 className="text-xl font-bold mb-4 text-emerald-600">Leaderboard</h3>
 
       {/* 1. Loading State */}
       {isLoading ? (
-        <div className="flex-grow flex items-center justify-center">
+        <div className="grow flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
         </div>
       ) : 
       
       /* 2. Error State */
       error ? (
-        <div className="flex-grow flex items-center justify-center text-red-500 text-sm">
+        <div className="grow flex items-center justify-center text-red-500 text-sm">
           <p>{error}</p>
         </div>
       ) : 
       
       /* 3. Empty State */
       leaderboard.length === 0 ? (
-        <div className="flex-grow flex items-center justify-center text-emerald-800 text-sm">
+        <div className="grow flex items-center justify-center text-emerald-800 text-sm">
           <p>No rankings available yet. Be the first!</p>
         </div>
       ) : 

@@ -1,48 +1,21 @@
 import { ProfileModel } from "@/models/profile.model";
-import getTokenPayload from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(
-    req: NextRequest
-){
+export async function GET(){
     try{
         await connectToDatabase();
-        const tokenData = await getTokenPayload(req);
-        const tokenDataJson = (await tokenData.json()) as { id: string };
-        const userId = tokenDataJson.id;
-        const userProfile = await ProfileModel.findOne({user: userId});
-        const userPoints = userProfile?.totalPoints;
-        //fetch leaderboard data from ProfileModel
-        const leaderboard = await ProfileModel.aggregate([
-        {
-            $facet: {
-            lower: [
-                { $match: { points: { $lt: userPoints } } },
-                { $sort: { points: -1 } },
-                { $limit: 2 }
-            ],
-            higher: [
-                { $match: { points: { $gt: userPoints } } },
-                { $sort: { points: 1 } },
-                { $limit: 2 }
-            ]
-            }
-        },
-        {
-            $addFields: {
-            current: [userProfile]
-            }
-        },
-        {
-            $project: {
-            leaderboard: {
-                $concatArrays: ["$lower", "$current", "$higher"]
-            }
-            }
-        }
-        ]);
-        return NextResponse.json({leaderboard}, {
+        const leaderboard = await ProfileModel.find({})
+            .sort({ totalPoints: -1, createdAt: 1 })
+            .select({ name: 1, totalPoints: 1 })
+            .lean();
+
+        const formattedLeaderboard = leaderboard.map((user) => ({
+            name: user.name,
+            totalPoints: user.totalPoints,
+        }));
+
+        return NextResponse.json({ leaderboard: formattedLeaderboard }, {
             status: 200
         }
         )
