@@ -50,9 +50,10 @@ export async function POST(
             status: 201
         });
 
-    }catch(err: any){
+    }catch(err: unknown){
+        const message = err instanceof Error ? err.message : "Error in sign-up";
         console.error("Error in sign-up:", err);
-        return NextResponse.json({error: err.message}, {
+        return NextResponse.json({error: message}, {
             status: 500
         })
     }

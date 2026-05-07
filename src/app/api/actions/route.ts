@@ -13,9 +13,9 @@ export async function POST(
 ){
     try{
         await connectToDatabase();
-        const {description} = await req.json();
+        const {description} = (await req.json()) as { description: string };
         const tokenData = await getTokenPayload(req);
-        const tokenDataJson = await tokenData.json().then(data => data);
+        const tokenDataJson = (await tokenData.json()) as { id: string };
 
         // --- GEMINI AI BLOCK START ---
         
@@ -113,9 +113,10 @@ export async function POST(
         return NextResponse.json({message: "Action logged successfully"}, {
             status: 201,
         });
-    }catch(err: any){
+    }catch(err: unknown){
+        const message = err instanceof Error ? err.message : "Error logging action";
         console.error("Error logging action:", err);
-        return NextResponse.json({error: err.message}, {
+        return NextResponse.json({error: message}, {
             status: 500
         })
     }

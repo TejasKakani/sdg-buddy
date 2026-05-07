@@ -1,11 +1,9 @@
 import { connectToDatabase } from "@/utils/mongodb-connect";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(
-    req: NextRequest
-){
+export async function GET(){
     try{
-        connectToDatabase();
+        await connectToDatabase();
 
         const response = NextResponse.json("Signed out successfully", {
             status: 200
@@ -19,8 +17,8 @@ export async function GET(
         return response;
 
 
-    }catch(err){
-        NextResponse.json("Error signing out", {
+    }catch{
+        return NextResponse.json("Error signing out", {
             status: 500
         });
 

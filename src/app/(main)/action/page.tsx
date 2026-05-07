@@ -96,7 +96,7 @@ export default function ActionPage() {
                 Welcome Back, {user.name}!
               </h2>
               <p className="text-emerald-800">
-                Here's a summary of your positive impact.
+                Here is a summary of your positive impact.
               </p>
             </>
           )}

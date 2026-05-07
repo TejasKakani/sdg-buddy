@@ -1,4 +1,4 @@
-import { User, UserModel } from '@/models/user.model';
+import { UserModel } from '@/models/user.model';
 import { connectToDatabase } from '@/utils/mongodb-connect';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -31,7 +31,7 @@ export async function POST(
             status: 200
         });
 
-    }catch(err){
+    }catch{
         return NextResponse.json("Error in verifying email", {
             status: 500,
         });

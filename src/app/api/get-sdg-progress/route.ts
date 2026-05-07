@@ -9,7 +9,7 @@ export async function GET(
     try{
         await connectToDatabase();
         const tokenPayload = await getTokenPayload(req);
-        const tokenPayloadJson = await tokenPayload.json().then(data => data);
+        const tokenPayloadJson = (await tokenPayload.json()) as { id: string };
         const userId = tokenPayloadJson.id;
         
         // Read SDG progress directly from Profile instead of aggregating from Actions
@@ -33,8 +33,9 @@ export async function GET(
         })).sort((a, b) => a.sdgId - b.sdgId);
         
         return NextResponse.json(sdgData, { status: 200 });
-    }catch(err: any){
-        return NextResponse.json({error: err.message}, {
+    }catch(err: unknown){
+        const message = err instanceof Error ? err.message : "Error fetching SDG progress";
+        return NextResponse.json({error: message}, {
             status: 500
         })
     }

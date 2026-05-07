@@ -54,7 +54,7 @@ export async function sendMail({ email, emailType, userId }: {
         break;
     }
 
-    var transport = nodemailer.createTransport({
+    const transport = nodemailer.createTransport({
       host: "sandbox.smtp.mailtrap.io",
       port: 2525,
       auth: {
@@ -81,8 +81,9 @@ export async function sendMail({ email, emailType, userId }: {
     return mailResponse;
 
   }
-  catch (err: any) {
-    throw new Error(err.message);
+  catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Error sending email";
+    throw new Error(message);
 
   }
 }

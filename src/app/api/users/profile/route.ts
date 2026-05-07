@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(
     req: NextRequest
 ){
-    const userPayload: any = await getTokenPayload(req);
-    const userPayloadJson = userPayload.json().then((data: any) => data);
+    const userPayload = await getTokenPayload(req);
+    const userPayloadJson = (await userPayload.json()) as { id: string };
 
     const user = await UserModel.findOne({
         _id: userPayloadJson.id

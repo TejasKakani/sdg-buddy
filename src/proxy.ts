@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import getTokenPayload from '@/utils/getTokenPayload';
  
 // This function can be marked `async` if using `await` inside
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 
     const tokenData = await getTokenPayload(request);
     // const tokenDataJson = await tokenData.json().then(data => data);

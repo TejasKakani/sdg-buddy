@@ -6,8 +6,6 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-    //TODO: Get user from the backend    
-    
     return (
         <div>
             <div>

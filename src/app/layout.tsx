@@ -1,17 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-// import "./globals.css";
+import "./globals.css";
 
 // Configure font optimization
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
   title: "SDG Buddy | Sustainable Action Tracker Platform",
   description: "A platform designed to help individuals align their daily actions with the united nation sustainable development goals (UNSDGs).",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",
@@ -29,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased font-sans">
+    <html lang="en" className={inter.className}>
+      <body className="antialiased">
         {children}
       </body>
     </html>

@@ -9,7 +9,7 @@ export async function GET(
     try{
         await connectToDatabase();
         const tokenData = await getTokenPayload(req);
-        const tokenDataJson = await tokenData.json().then(data => data);
+        const tokenDataJson = (await tokenData.json()) as { id: string };
         const userId = tokenDataJson.id;
         const userProfile = await ProfileModel.findOne({user: userId});
         const userPoints = userProfile?.totalPoints;
@@ -46,8 +46,9 @@ export async function GET(
             status: 200
         }
         )
-    }catch(err: any){
-        return NextResponse.json({error: err.message}, {
+    }catch(err: unknown){
+        const message = err instanceof Error ? err.message : "Error fetching leaderboard";
+        return NextResponse.json({error: message}, {
             status: 500
         })
     }

@@ -3,15 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import InstallAppButton from "@/components/layout/InstallAppButton";
 
-interface Recommendation {
-  sdgId: number;
-  goalName: string;
-  reason: string;
-  suggestedAction: string;
-  suggestedPoints: number;
-}
+type HeaderUser = {
+  name: string;
+  points: number;
+  streak: number;
+  achievements: number;
+};
+
+const INITIAL_USER: HeaderUser = {
+  name: "",
+  points: 0,
+  streak: 0,
+  achievements: 0,
+};
 
 interface ButtonLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
@@ -19,10 +24,17 @@ interface ButtonLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> 
 }
 
 const ButtonLink = ({ href, className, children, ...props }: ButtonLinkProps) => {
+  const linkClassName = [
+    "inline-block rounded-md text-white font-semibold transition-colors px-4 py-2",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <Link
       href={href}
-      className={`inline-block rounded-md text-white font-semibold transition-colors px-4 py-2 ${className}`}
+      className={linkClassName}
       {...props}
     >
       {children}
@@ -31,7 +43,7 @@ const ButtonLink = ({ href, className, children, ...props }: ButtonLinkProps) =>
 };
 
 export default function Header() {
-  const [user, setUser] = useState({ name: "", points: 0, streak: 0, achievements: 0 });
+  const [user, setUser] = useState<HeaderUser>(INITIAL_USER);
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
@@ -43,7 +55,7 @@ export default function Header() {
       await fetch("/api/users/sign-out", {
         method: "GET",
       });
-      setUser({ name: "", points: 0, streak: 0, achievements: 0 });
+      setUser(INITIAL_USER);
       router.push("/sign-in");
       router.refresh();
     } catch (error) {
@@ -52,24 +64,46 @@ export default function Header() {
       setIsSigningOut(false);
     }
   };
-    
+
   useEffect(() => {
-    setIsLoading(true);
-    fetch('/api/get-dashboard-profile')
-      .then(res => res.json())
-      .then(data => {
-        if(data.profile){
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch("/api/get-dashboard-profile", {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (data.profile) {
           setUser({
-            name: data.profile.name,
-            points: data.profile.totalPoints,
-            streak: data.profile.currentStreak,
-            achievements: data.profile.acheivements,
+            name: data.profile.name ?? "",
+            points: data.profile.totalPoints ?? 0,
+            streak: data.profile.currentStreak ?? 0,
+            achievements: data.profile.acheivements ?? 0,
           });
         }
-      })
-        .catch(err => console.error("Failed to fetch user:", err))
-        .finally(() => setIsLoading(false));
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Failed to fetch user:", error);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      controller.abort();
+    };
   }, []);
+
+  const userInitial = user.name.trim().charAt(0).toUpperCase();
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -83,7 +117,6 @@ export default function Header() {
           <>
             {user.name === "" ? (
               <div className="flex items-center gap-3">
-                <InstallAppButton />
                 <ButtonLink
                   href="/sign-in"
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -94,10 +127,9 @@ export default function Header() {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                <InstallAppButton />
                 <span className="text-xl font-bold text-emerald-600">{user.name}</span>
                 <div className="w-10 h-10 bg-emerald-200 rounded-full flex items-center justify-center font-bold text-emerald-700">
-                  {user.name.split(' ')[0][0].toUpperCase()}
+                  {userInitial || "?"}
                 </div>
                 <button
                   type="button"

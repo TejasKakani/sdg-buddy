@@ -85,7 +85,7 @@ export default function SignUpScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-[#111827] text-white flex items-center justify-center p-4 relative overflow-hidden font-['Poppins',_sans-serif]">
+    <div className="min-h-screen bg-[#111827] text-white flex items-center justify-center p-4 relative overflow-hidden font-['Poppins',sans-serif]">
       
       {/* 3. Added pointer-events-none */}
       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
@@ -93,18 +93,7 @@ export default function SignUpScreen() {
         <div className="absolute -top-10 -right-10 w-72 h-72 md:w-96 md:h-96 bg-sky-600 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-10 left-1/4 w-72 h-72 md:w-96 md:h-96 bg-green-600 rounded-full filter blur-3xl animate-blob animation-delay-4000"></div>
         
-        {/* Recommendation: Move this to globals.css instead of injecting it on both auth pages */}
-        <style jsx global>{`
-          .animate-blob { animation: blob 8s infinite; }
-          .animation-delay-2000 { animation-delay: 2s; }
-          .animation-delay-4000 { animation-delay: 4s; }
-          @keyframes blob {
-            0% { transform: translate(0px, 0px) scale(1); }
-            33% { transform: translate(40px, -60px) scale(1.15); }
-            66% { transform: translate(-30px, 30px) scale(0.85); }
-            100% { transform: translate(0px, 0px) scale(1); }
-          }
-        `}</style>
+        {/* keyframes moved to src/app/globals.css */}
       </div>
 
       {/* Main Content Card */}

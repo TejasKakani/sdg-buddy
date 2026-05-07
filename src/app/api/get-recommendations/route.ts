@@ -4,6 +4,12 @@ import { connectToDatabase } from "@/utils/mongodb-connect";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
+type SdgProgressItem = {
+  _id: number;
+  totalPoints: number;
+  actionCount: number;
+};
+
 const SDG_NAMES: Record<number, string> = {
   1: "No Poverty",
   2: "Zero Hunger",
@@ -82,7 +88,7 @@ export async function GET(req: NextRequest) {
       pointsByGoal.set(goal, 0);
     }
 
-    sdgProgress.forEach((item: { _id: number; totalPoints: number }) => {
+    sdgProgress.forEach((item: SdgProgressItem) => {
       pointsByGoal.set(item._id, item.totalPoints || 0);
     });
 
@@ -110,10 +116,11 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Error fetching recommendations";
     return NextResponse.json(
       {
-        error: err.message,
+        error: message,
       },
       {
         status: 500,

@@ -51,7 +51,7 @@ export async function POST(
 
         return response;
 
-    }catch(err){
+    }catch{
         return NextResponse.json("Error in signing in", {
             status: 500,
         }); 

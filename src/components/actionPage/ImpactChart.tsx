@@ -12,6 +12,8 @@ interface GoalData {
   data: number[];
 }
 
+const LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 export default function ImpactChart() {
   const [goals, setGoals] = useState<GoalData[]>([]);
   // Start with an empty string, we will dynamically set this after fetching
@@ -19,7 +21,6 @@ export default function ImpactChart() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null); // Added error state
 
-  const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
 
@@ -68,7 +69,7 @@ export default function ImpactChart() {
     chartInstance.current = new Chart(ctx, {
       type: "bar",
       data: {
-        labels: labels,
+        labels: LABELS,
         datasets: [{
           label: activeGoal.label,
           data: activeGoal.data,
@@ -112,7 +113,7 @@ export default function ImpactChart() {
         chartInstance.current = null; // Nullify the ref to be safe
       }
     };
-  }, [activeGoal]); // Removed isLoading from deps. activeGoal change is enough.
+  }, [activeGoal]);
 
   return (
     <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-[400px]">
