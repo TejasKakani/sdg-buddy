@@ -1,130 +1,231 @@
-import { ActionModel } from "@/models/action.model";
-import getTokenPayload from "@/utils/getTokenPayload";
-import { connectToDatabase } from "@/utils/mongodb-connect";
-import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { ActionModel } from "@/models/action.model";
+import { connectToDatabase } from "@/utils/mongodb-connect";
+import getTokenPayload from "@/utils/getTokenPayload";
+import mongoose from "mongoose";
 
-type SdgProgressItem = {
-  _id: number;
-  totalPoints: number;
-  actionCount: number;
-};
+export async function POST(request: NextRequest) {
+    try {
+        const tokenData = await getTokenPayload(request);
+        const tokenDataJson = (await tokenData.json()) as { id: string };
 
-const SDG_NAMES: Record<number, string> = {
-  1: "No Poverty",
-  2: "Zero Hunger",
-  3: "Good Health and Well-being",
-  4: "Quality Education",
-  5: "Gender Equality",
-  6: "Clean Water and Sanitation",
-  7: "Affordable and Clean Energy",
-  8: "Decent Work and Economic Growth",
-  9: "Industry, Innovation and Infrastructure",
-  10: "Reduced Inequality",
-  11: "Sustainable Cities and Communities",
-  12: "Responsible Consumption and Production",
-  13: "Climate Action",
-  14: "Life Below Water",
-  15: "Life on Land",
-  16: "Peace, Justice and Strong Institutions",
-  17: "Partnerships for the Goals",
-};
+        if (!tokenDataJson?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
-const ACTION_TEMPLATES: Record<number, string[]> = {
-  1: ["Donate one useful item this week.", "Support a local charity drive with food or clothes."],
-  2: ["Plan one zero-waste meal this week.", "Share extra groceries with someone in need."],
-  3: ["Walk or bike for one short trip today.", "Take a 20-minute wellness break without screens."],
-  4: ["Share one educational resource with a friend.", "Spend 30 minutes learning a sustainability topic."],
-  5: ["Support a women-led local business this week.", "Amplify one voice from an underrepresented group."],
-  6: ["Reduce your shower time by two minutes.", "Fix a leaking tap or report it this week."],
-  7: ["Switch off idle devices before bed.", "Replace one old bulb with an energy-efficient one."],
-  8: ["Choose one fair-trade product this week.", "Support a local small business for your next purchase."],
-  9: ["Repair one item instead of replacing it.", "Use a digital solution that reduces paper usage."],
-  10: ["Donate or volunteer for an inclusion-focused cause.", "Make one decision today that improves accessibility."],
-  11: ["Use public transport for one trip this week.", "Join or suggest one neighborhood clean-up action."],
-  12: ["Carry a reusable bottle and cup today.", "Skip single-use plastic for one full day."],
-  13: ["Eat one plant-based meal this week.", "Avoid one unnecessary car trip today."],
-  14: ["Avoid products with microplastics.", "Take part in a local waterway clean-up."],
-  15: ["Plant a native species this month.", "Choose paper products from certified sources."],
-  16: ["Participate in one civic discussion respectfully.", "Verify one news source before sharing it."],
-  17: ["Invite a friend to log one SDG action with you.", "Collaborate with a group on one local SDG task."],
-};
+        await connectToDatabase();
 
-function pickSuggestion(goalId: number, seed: number): string {
-  const options = ACTION_TEMPLATES[goalId] || ["Log one small positive action today."];
-  return options[seed % options.length];
+        const body = await request.json();
+        const limit = body.limit || 5;
+
+        // Step 1: Get user's past actions (last 5)
+        const userActions = await ActionModel.find({ user: tokenDataJson.id })
+            .sort({ completedAt: -1 })
+            .limit(5);
+
+        // If no past actions, return popular actions from community
+        if (userActions.length === 0) {
+            return getPopularRecommendations(limit);
+        }
+
+        // Step 2: Get embeddings from user's actions (filter out zero vectors)
+        const userEmbeddings = userActions
+            .filter(
+                (action) =>
+                    action.descriptionEmbedding &&
+                    action.descriptionEmbedding.length > 0 &&
+                    !isZeroVector(action.descriptionEmbedding)
+            )
+            .map((action) => action.descriptionEmbedding!);
+
+        // If no valid embeddings, return popular recommendations
+        if (userEmbeddings.length === 0) {
+            return getPopularRecommendations(limit);
+        }
+
+        // Step 3: Calculate average embedding (centroid of user's interests)
+        const avgEmbedding = calculateAverageEmbedding(userEmbeddings);
+
+        // Step 4: Try Atlas Vector Search first, then fallback to app-side cosine ranking.
+        const userActionIds = userActions.map((a) => a._id);
+
+        let recommendations: unknown[] = [];
+        try {
+            recommendations = await ActionModel.aggregate([
+                {
+                    $vectorSearch: {
+                        index: "action_embedding_index",
+                        path: "descriptionEmbedding",
+                        queryVector: avgEmbedding,
+                        numCandidates: Math.max(limit * 20, 50),
+                        limit: limit * 3,
+                    },
+                },
+                {
+                    $match: {
+                        _id: { $nin: userActionIds },
+                        descriptionEmbedding: { $exists: true, $ne: null },
+                    },
+                },
+                {
+                    $project: {
+                        description: 1,
+                        sdgs: 1,
+                        points: 1,
+                        category: 1,
+                        completedAt: 1,
+                        score: { $meta: "vectorSearchScore" },
+                    },
+                },
+                {
+                    $sort: { score: -1 },
+                },
+                {
+                    $limit: limit,
+                },
+            ]);
+        } catch (vectorError) {
+            console.warn("Vector search unavailable, using fallback ranking:", vectorError);
+            recommendations = await getFallbackRecommendations(avgEmbedding, userActionIds, limit);
+        }
+
+        return NextResponse.json({
+            success: true,
+            recommendations,
+            count: recommendations.length,
+        });
+    } catch (error) {
+        console.error("Error fetching recommendations:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch recommendations" },
+            { status: 500 }
+        );
+    }
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    await connectToDatabase();
+/**
+ * Helper: Calculate average embedding (vector centroid)
+ * This represents the center of all user's past actions in vector space
+ */
+function calculateAverageEmbedding(embeddings: number[][]): number[] {
+    if (embeddings.length === 0) return [];
 
-    const tokenPayloadResponse = await getTokenPayload(req);
-    if (tokenPayloadResponse.status !== 200) {
-      return NextResponse.json({ recommendations: [] }, { status: 401 });
-    }
+    const dimension = embeddings[0].length;
+    const average = new Array(dimension).fill(0);
 
-    const tokenPayloadJson = await tokenPayloadResponse.json();
-    const userId = tokenPayloadJson?.id;
-
-    if (!userId) {
-      return NextResponse.json({ recommendations: [] }, { status: 401 });
-    }
-
-    const sdgProgress = await ActionModel.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },
-      { $unwind: "$sdgs" },
-      {
-        $group: {
-          _id: "$sdgs",
-          totalPoints: { $sum: "$points" },
-          actionCount: { $sum: 1 },
-        },
-      },
-    ]);
-
-    const pointsByGoal = new Map<number, number>();
-    for (let goal = 1; goal <= 17; goal += 1) {
-      pointsByGoal.set(goal, 0);
-    }
-
-    sdgProgress.forEach((item: SdgProgressItem) => {
-      pointsByGoal.set(item._id, item.totalPoints || 0);
+    embeddings.forEach((embedding) => {
+        embedding.forEach((val, idx) => {
+            average[idx] += val;
+        });
     });
 
-    const recommendations = Array.from(pointsByGoal.entries())
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, 3)
-      .map(([goalId, points], index) => {
-        const isNewArea = points === 0;
+    return average.map((val) => val / embeddings.length);
+}
 
-        return {
-          sdgId: goalId,
-          goalName: SDG_NAMES[goalId],
-          reason: isNewArea
-            ? "You have no logged impact in this goal yet."
-            : `This goal has fewer points than your other goals (${points} pts).`,
-          suggestedAction: pickSuggestion(goalId, index),
-          suggestedPoints: Math.max(10, Math.round((points + 15) / 2)),
-        };
-      });
+/**
+ * Helper: Check if a vector is all zeros
+ */
+function isZeroVector(vector: number[]): boolean {
+    return vector.every((val) => val === 0);
+}
 
-    return NextResponse.json(
-      {
-        recommendations,
-        strategy: "lowest-sdg-points",
-      },
-      { status: 200 }
-    );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Error fetching recommendations";
-    return NextResponse.json(
-      {
-        error: message,
-      },
-      {
-        status: 500,
-      }
-    );
-  }
+function cosineSimilarity(a: number[], b: number[]): number {
+    if (a.length !== b.length || a.length === 0) return 0;
+
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+
+    for (let i = 0; i < a.length; i += 1) {
+        dot += a[i] * b[i];
+        magA += a[i] * a[i];
+        magB += b[i] * b[i];
+    }
+
+    if (magA === 0 || magB === 0) return 0;
+    return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
+
+async function getFallbackRecommendations(
+    queryVector: number[],
+    excludedIds: mongoose.Types.ObjectId[],
+    limit: number
+) {
+    const candidates = await ActionModel.find({
+        _id: { $nin: excludedIds },
+        descriptionEmbedding: { $exists: true, $ne: null },
+    })
+        .select("description sdgs points category completedAt descriptionEmbedding")
+        .limit(Math.max(limit * 30, 200))
+        .lean();
+
+    const ranked = candidates
+        .map((candidate) => {
+            const embedding = Array.isArray(candidate.descriptionEmbedding)
+                ? candidate.descriptionEmbedding
+                : [];
+
+            return {
+                _id: candidate._id,
+                description: candidate.description,
+                sdgs: candidate.sdgs,
+                points: candidate.points,
+                category: candidate.category,
+                completedAt: candidate.completedAt,
+                score: cosineSimilarity(queryVector, embedding),
+            };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+    return ranked;
+}
+
+/**
+ * Helper: Get popular recommendations if no user history
+ * Groups actions by description and returns most common ones
+ */
+async function getPopularRecommendations(limit: number) {
+    try {
+        const popular = await ActionModel.aggregate([
+            {
+                $group: {
+                    _id: "$description",
+                    count: { $sum: 1 },
+                    points: { $first: "$points" },
+                    sdgs: { $first: "$sdgs" },
+                    category: { $first: "$category" },
+                },
+            },
+            {
+                $sort: { count: -1 },
+            },
+            {
+                $limit: limit,
+            },
+            {
+                $project: {
+                    description: "$_id",
+                    points: 1,
+                    sdgs: 1,
+                    category: 1,
+                    count: 1,
+                    _id: 0,
+                },
+            },
+        ]);
+
+        return NextResponse.json({
+            success: true,
+            recommendations: popular,
+            count: popular.length,
+        });
+    } catch (error) {
+        console.error("Error fetching popular recommendations:", error);
+        return NextResponse.json({
+            success: false,
+            recommendations: [],
+            count: 0,
+        });
+    }
 }

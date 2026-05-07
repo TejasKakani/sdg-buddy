@@ -4,6 +4,7 @@ import getTokenPayload from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { ProfileModel } from "@/models/profile.model";
 import { GoogleGenAI } from "@google/genai";
+import { generateEmbedding } from "@/utils/generateEmbedding";
 
 // The client gets the API key from the environment variable `GEMINI_API_KEY`.
 const ai = new GoogleGenAI({});
@@ -40,12 +41,17 @@ export async function POST(
         const responseText = result.text?.trim();
         const aiAnalysis = JSON.parse(responseText || ""); // Validate JSON format
 
+        // Generate embedding for the description
+        const descriptionEmbedding = await generateEmbedding(description);
+
         const action = new ActionModel({
             user: tokenDataJson.id,
             description: description,
             sdgs: aiAnalysis.sdgs || [17],
             points: aiAnalysis.points || 5,
-            completedAt: new Date()
+            completedAt: new Date(),
+            descriptionEmbedding: descriptionEmbedding,
+            category: 'general'
         });
         await action.save();
 

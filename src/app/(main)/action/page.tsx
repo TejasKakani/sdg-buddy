@@ -7,6 +7,7 @@ import ActionLogger from "@/components/actionPage/ActionLogger";
 import ImpactChart from "@/components/actionPage/ImpactChart";
 import Leaderboard from "@/components/actionPage/Leaderboard";
 import SDGGrid from "@/components/actionPage/SDGGrid";
+import RecommendationsButton from "@/components/actionPage/RecommendationsButton";
 
 export default function ActionPage() {
   const router = useRouter();
@@ -28,12 +29,6 @@ export default function ActionPage() {
         setError(null);
         
         const res = await fetch('/api/get-dashboard-profile');
-        
-        // Handle unauthenticated users gracefully
-        if (res.status === 401) {
-          router.push('/sign-in');
-          return;
-        }
 
         if (!res.ok) throw new Error("Failed to load profile data");
 
@@ -49,7 +44,8 @@ export default function ActionPage() {
             achievements: data.profile.acheivements || 0, 
           });
         } else {
-           throw new Error("Invalid profile data received");
+           //handle unauthenticated or malformed response
+           router.push('/sign-in');
         }
       } catch (err) {
         console.error("Error fetching dashboard:", err);
@@ -98,6 +94,20 @@ export default function ActionPage() {
               <p className="text-emerald-800">
                 Here is a summary of your positive impact.
               </p>
+
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-linear-to-r from-emerald-100 via-lime-50 to-teal-100 p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+                      Smart Suggestions
+                    </p>
+                    <p className="text-emerald-900">
+                      Discover actions similar to your impact history.
+                    </p>
+                  </div>
+                  <RecommendationsButton />
+                </div>
+              </div>
             </>
           )}
         </div>
