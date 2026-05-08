@@ -11,6 +11,7 @@
   "dependencies": {
     "@google/genai": "^1.52.0",
     "@google/generative-ai": "^0.24.1",
+    "@huggingface/inference": "^4.13.15",
     "bcrypt": "^6.0.0",
     "chart.js": "^4.5.1",
     "jose": "^6.2.3",
@@ -25,14 +26,17 @@
     "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.6.2",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/yargs": "^17.0.35",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.5",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.2.4",
-    "typescript": "^6.0.3"
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
+    "yargs": "^18.0.0"
   }
 }

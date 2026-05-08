@@ -55,7 +55,7 @@ export default function SDGGrid() {
   }, []);
 
   return (
-    <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-[300px] flex flex-col">
+    <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 min-h-75 flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold text-emerald-800">My SDG Progress</h3>
         {isLoading && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>}
@@ -85,7 +85,7 @@ export default function SDGGrid() {
               </div>
 
               {/* 3. Fixed Tooltip Positioning & Styling */}
-              <div className="absolute bottom-full mb-3 w-max max-w-[150px] px-3 py-2 bg-slate-800 text-white text-xs rounded-md left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 shadow-lg text-center">
+              <div className="absolute bottom-full mb-3 w-max max-w-37.5 px-3 py-2 bg-slate-800 text-white text-xs rounded-md left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 shadow-lg text-center">
                 <p className="font-semibold mb-1">{goal.name}</p>
                 <p className="text-emerald-400 font-bold">{goal.points.toLocaleString()} pts</p>
                 {/* CSS Triangle pointing down */}

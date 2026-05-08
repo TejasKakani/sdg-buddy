@@ -75,6 +75,45 @@ sdg-buddy ├── app/              # Main application routes (pages, layouts,
 
 6. Open http://localhost:3000 in your browser.
 
+### Hugging Face Embeddings (optional)
+
+This project can optionally use the Hugging Face Inference API for action embeddings. If you provide a Hugging Face API key, the app will call the configured model and fall back to a local embedder on error.
+
+- Add the following to your `.env.local` (or environment for your deployment):
+
+```bash
+# Your Hugging Face Inference API key (optional)
+HUGGINGFACE_API_KEY=hf_xxxYOURKEYxxx
+
+# Optional: model to use for embeddings (default shown)
+HUGGINGFACE_MODEL=sentence-transformers/all-MiniLM-L6-v2
+```
+
+Examples — start the dev server with the env var set (PowerShell):
+
+```powershell
+$env:HUGGINGFACE_API_KEY="hf_xxxYOURKEYxxx"
+npm run dev
+```
+
+Or on macOS / Linux (bash):
+
+```bash
+export HUGGINGFACE_API_KEY="hf_xxxYOURKEYxxx"
+npm run dev
+```
+
+How to verify locally:
+
+- Log in and use the app to "Log Action" (from the dashboard). The server route that saves actions calls `generateEmbedding`.
+- If the embedding call to Hugging Face succeeds, the server will store the returned numeric vector; otherwise it will store the local fallback vector.
+- You can inspect saved action documents in your database (e.g., MongoDB) to verify the `descriptionEmbedding` field has numeric values.
+
+Troubleshooting:
+
+- If you see failures from the Hugging Face API, the app will log the error and silently fall back to the local embedder.
+- Ensure your Hugging Face quota and model name are correct for the selected model.
+
 
 
 

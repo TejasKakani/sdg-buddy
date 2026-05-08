@@ -42,7 +42,11 @@ export async function POST(
         const aiAnalysis = JSON.parse(responseText || ""); // Validate JSON format
 
         // Generate embedding for the description
+        // Log which embedder will be attempted and generate embedding
+        const usingHf = !!process.env.HUGGINGFACE_API_KEY;
+        console.info(`Embedding: attempting ${usingHf ? `Hugging Face model ${process.env.HUGGINGFACE_MODEL || 'default'}` : 'local embedder'}`);
         const descriptionEmbedding = await generateEmbedding(description);
+        console.info(`Embedding generated (length=${Array.isArray(descriptionEmbedding) ? descriptionEmbedding.length : 'unknown'})`);
 
         const action = new ActionModel({
             user: tokenDataJson.id,
