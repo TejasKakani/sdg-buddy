@@ -107,16 +107,16 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
-      <nav className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <nav className="max-w-7xl mx-auto px-4 py-4 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4">
         <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
           <span className="text-2xl">🌱</span>
           <h1 className="text-xl font-bold text-emerald-600">SDG Buddy</h1>
         </Link>
-        
-        {!isLoading && (
-          <>
-            {user.name === "" ? (
-              <div className="flex items-center gap-3">
+
+        <div className="flex min-h-11 items-center justify-end gap-3 justify-self-end">
+          {!isLoading && (
+            <>
+              {user.name === "" ? (
                 <ButtonLink
                   href="/sign-in"
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -124,25 +124,25 @@ export default function Header() {
                 >
                   Sign In
                 </ButtonLink>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <span className="text-xl font-bold text-emerald-600">{user.name}</span>
-                <div className="w-10 h-10 bg-emerald-200 rounded-full flex items-center justify-center font-bold text-emerald-700">
-                  {userInitial || "?"}
+              ) : (
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <span className="text-xl font-bold text-emerald-600">{user.name}</span>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-700">
+                    {userInitial || "?"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    className="rounded-md border border-emerald-600 px-4 py-2 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSigningOut ? "Signing out..." : "Sign Out"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  disabled={isSigningOut}
-                  className="rounded-md border border-emerald-600 px-4 py-2 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSigningOut ? "Signing out..." : "Sign Out"}
-                </button>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </nav>
 
     </header>
