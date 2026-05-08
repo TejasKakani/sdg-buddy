@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // 1. Import Next.js Link
 import Image from 'next/image';
@@ -39,6 +39,44 @@ export default function SignUpScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const redirectIfSignedIn = async () => {
+      try {
+        const response = await fetch('/api/get-dashboard-profile', {
+          signal: controller.signal,
+          credentials: 'include',
+        });
+        const data = await response.json();
+
+        if (data.profile) {
+          router.replace('/action');
+          router.refresh();
+        }
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Failed to verify session on sign-up page:', error);
+        }
+      }
+    };
+
+    void redirectIfSignedIn();
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        void redirectIfSignedIn();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

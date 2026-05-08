@@ -45,7 +45,8 @@ export default function ActionPage() {
           });
         } else {
            //handle unauthenticated or malformed response
-           router.push('/sign-in');
+          router.replace('/sign-in');
+          router.refresh();
         }
       } catch (err) {
         console.error("Error fetching dashboard:", err);

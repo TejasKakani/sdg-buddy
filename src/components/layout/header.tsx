@@ -56,8 +56,7 @@ export default function Header() {
         method: "GET",
       });
       setUser(INITIAL_USER);
-      router.push("/sign-in");
-      router.refresh();
+      router.replace("/sign-in");
     } catch (error) {
       console.error("Failed to sign out:", error);
     } finally {

@@ -62,7 +62,7 @@ export default function SDGGrid() {
       </div>
 
       {error ? (
-        <div className="flex-grow flex items-center justify-center text-red-500 text-sm">
+        <div className="grow flex items-center justify-center text-red-500 text-sm">
           <p>{error}</p>
         </div>
       ) : (

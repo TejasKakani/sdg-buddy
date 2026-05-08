@@ -31,6 +31,44 @@ export default function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const redirectIfSignedIn = async () => {
+      try {
+        const response = await fetch('/api/get-dashboard-profile', {
+          signal: controller.signal,
+          credentials: 'include',
+        });
+        const data = await response.json();
+
+        if (data.profile) {
+          router.replace('/action');
+          router.refresh();
+        }
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Failed to verify session on sign-in page:', error);
+        }
+      }
+    };
+
+    void redirectIfSignedIn();
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        void redirectIfSignedIn();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [router]);
+
   // Effect to simulate the live data ticker
   useEffect(() => {
     const interval = setInterval(() => {
@@ -66,6 +104,7 @@ export default function LoginScreen() {
 
       // 2. Assuming '/action' is your dashboard. Change to '/' if you want them on the landing page!
       router.replace('/action'); 
+      router.refresh();
       
     } catch (e: unknown) { // 3. Replaced 'any' with 'unknown'
       if (e instanceof Error) {
