@@ -1,0 +1,105 @@
+"use client";
+
+import type { PWAInstallElement } from "@khmyznikov/pwa-install";
+import "@khmyznikov/pwa-install";
+
+import { Download } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { isAppInstalled, registerPwaServiceWorker } from "@/utils/pwa";
+
+export default function PWAInstallButton() {
+  const pwaInstallRef = useRef<PWAInstallElement | null>(null);
+  const [deferredPromptEvent, setDeferredPromptEvent] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(true);
+
+  useEffect(() => {
+    setIsInstalled(isAppInstalled());
+
+    const windowWithInstallPrompt = window as Window & {
+      __sdgBuddyInstallPrompt?: Event | null;
+    };
+
+    const syncPromptEvent = () => {
+      const promptEvent = windowWithInstallPrompt.__sdgBuddyInstallPrompt ?? null;
+      setDeferredPromptEvent(promptEvent);
+
+      if (pwaInstallRef.current && promptEvent) {
+        pwaInstallRef.current.externalPromptEvent = promptEvent as never;
+      }
+    };
+
+    syncPromptEvent();
+
+    const handlePromptReady = () => {
+      syncPromptEvent();
+    };
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      windowWithInstallPrompt.__sdgBuddyInstallPrompt = event;
+      syncPromptEvent();
+    };
+
+    window.addEventListener("sdg-buddy-install-prompt-ready", handlePromptReady);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    void registerPwaServiceWorker().catch((error) => {
+      console.error("Failed to register service worker:", error);
+    });
+
+    return () => {
+      window.removeEventListener("sdg-buddy-install-prompt-ready", handlePromptReady);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    const installElement = pwaInstallRef.current;
+
+    if (!installElement) {
+      return;
+    }
+
+    if (deferredPromptEvent) {
+      installElement.externalPromptEvent = deferredPromptEvent as never;
+    }
+
+    if (typeof installElement.showDialog === "function") {
+      installElement.showDialog();
+      return;
+    }
+
+    if (typeof installElement.install === "function") {
+      installElement.install();
+    }
+  };
+
+  if (isInstalled) {
+    return null;
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleInstallClick}
+        className="inline-flex items-center gap-2 rounded-md border border-emerald-600 px-4 py-2 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50"
+      >
+        <Download className="h-4 w-4" />
+        Install app
+      </button>
+
+      <pwa-install
+        ref={pwaInstallRef}
+        manualApple
+        manualChrome
+        useLocalStorage
+        manifestUrl="/manifest.webmanifest"
+        name="SDG Buddy"
+        description="Track sustainable actions and install SDG Buddy as an app on your device."
+        icon="/logo.png"
+        styles={{ "--tint-color": "#059669" }}
+      />
+    </>
+  );
+}

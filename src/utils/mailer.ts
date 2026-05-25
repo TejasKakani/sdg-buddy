@@ -1,6 +1,20 @@
 import { UserModel } from '@/models/user.model';
-import bcrypt from "bcrypt"
-import nodemailer from 'nodemailer';
+import bcrypt from "bcrypt";
+import { Resend } from 'resend';
+
+
+
+// lazy Resend client so importing the module doesn't require the env var at build
+let _resendClient: Resend | null = null;
+function getResendClient() {
+  if (_resendClient) return _resendClient;
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    throw new Error('RESEND_API_KEY environment variable is not set');
+  }
+  _resendClient = new Resend(key);
+  return _resendClient;
+}
 
 export async function sendMail({ email, emailType, userId }: {
   email: string;
@@ -9,22 +23,27 @@ export async function sendMail({ email, emailType, userId }: {
 }) {
 
   try {
-
+    const domain = process.env.DOMAIN;
+    if (!domain) {
+      throw new Error('DOMAIN environment variable is not set');
+    }
+    const mailFrom = process.env.MAIL_FROM || `onboarding@resend.dev`;
+    const resend = getResendClient();
     const verifyEmailToken = await bcrypt.hash(userId, 10);
 
     const verifyEmailHtml = `
-    <p>Click <a href="${process.env.DOMAIN}/verify-email?token=${verifyEmailToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
+    <p>Click <a href="${domain}/verify-email?token=${verifyEmailToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
     or copy and paste the following link in your browser.
     </p>
-    ${process.env.DOMAIN}/verify-email?token=${verifyEmailToken},
+    ${domain}/verify-email?token=${verifyEmailToken}
     <p>If you didn't request this, please ignore this email.</p>
   `;
 
     const resetPasswordHtml = `
-      <p>Click <a href="${process.env.DOMAIN}/reset-password?token=${verifyEmailToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
+      <p>Click <a href="${domain}/reset-password?token=${verifyEmailToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
       or copy and paste the following link in your browser.
       </p>
-      ${process.env.DOMAIN}/reset-password?token=${verifyEmailToken},
+      ${domain}/reset-password?token=${verifyEmailToken}
       <p>If you didn't request this, please ignore this email.</p>
     `;
 
@@ -52,31 +71,18 @@ export async function sendMail({ email, emailType, userId }: {
           }
         });
         break;
+      default:
+        throw new Error(`Unknown emailType: ${emailType}`);
     }
-
-    const transport = nodemailer.createTransport({
-      host: "sandbox.smtp.mailtrap.io",
-      port: 2525,
-      auth: {
-        user: "f3caee00ef5161",
-        pass: "f101d7b6bbda43"
-      }
-    });
 
     const options = {
-      from: 'tejaskakani.official@gmail.com',
+      from: mailFrom,
       to: email,
       subject: subjectLine,
-      html: htmlBody
-    }
+      html: htmlBody,
+    };
 
-    const mailResponse = await transport.sendMail(options, (error, info) => {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Email sent: " + info.response);
-      }
-    });
+    const mailResponse = await resend.emails.send(options);
 
     return mailResponse;
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import PWAInstallButton from "@/components/layout/PWAInstallButton";
 
 type HeaderUser = {
   name: string;
@@ -113,6 +114,7 @@ export default function Header() {
         </Link>
 
         <div className="flex min-h-11 items-center justify-end gap-3 justify-self-end">
+          <PWAInstallButton />
           {!isLoading && (
             <>
               {user.name === "" ? (

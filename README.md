@@ -69,6 +69,10 @@ sdg-buddy ├── app/              # Main application routes (pages, layouts,
 
 4. Create a `.env.local` file based on the provided `.env.example`, and fill in any required secrets and environment variables specific to your setup.
 
+   For production email, set `RESEND_API_KEY` and use a verified `MAIL_FROM` address on your domain. Resend handles delivery, but your domain still needs to be verified in the Resend dashboard.
+
+   Make sure the sending domain has SPF, DKIM, and DMARC configured, otherwise inbox delivery will be poor even if the API call succeeds.
+
 5. Run the development server:
    ```bash
    npm run dev
