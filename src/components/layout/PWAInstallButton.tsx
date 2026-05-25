@@ -10,10 +10,9 @@ import { isAppInstalled, registerPwaServiceWorker } from "@/utils/pwa";
 export default function PWAInstallButton() {
   const pwaInstallRef = useRef<PWAInstallElement | null>(null);
   const [deferredPromptEvent, setDeferredPromptEvent] = useState<Event | null>(null);
-  const [isInstalled, setIsInstalled] = useState(true);
+  const [isInstalled] = useState<boolean>(() => isAppInstalled());
 
   useEffect(() => {
-    setIsInstalled(isAppInstalled());
 
     const windowWithInstallPrompt = window as Window & {
       __sdgBuddyInstallPrompt?: Event | null;
