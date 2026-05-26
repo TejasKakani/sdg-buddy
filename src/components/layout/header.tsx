@@ -44,11 +44,11 @@ const ButtonLink = ({ href, className, children, ...props }: ButtonLinkProps) =>
 };
 
 export default function Header() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<HeaderUser>(INITIAL_USER);
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const router = useRouter();
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -105,6 +105,7 @@ export default function Header() {
   }, []);
 
   const userInitial = user.name.trim().charAt(0).toUpperCase();
+  const shouldTruncateUserName = user.name.length > 18;
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -143,18 +144,23 @@ export default function Header() {
                   Sign In
                 </ButtonLink>
               ) : (
-                        <div className="flex items-center gap-2 sm:gap-4">
-                          <span className="text-xl font-bold text-emerald-600 hidden sm:inline-block max-w-[140px] truncate">
-                            {user.name}
-                          </span>
-                          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-700">
-                            {userInitial || "?"}
-                          </div>
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <span
+                    className={`text-xl font-bold text-emerald-600 hidden sm:inline-block ${
+                      shouldTruncateUserName ? "max-w-[280px] truncate" : "max-w-none"
+                    }`}
+                    title={shouldTruncateUserName ? user.name : undefined}
+                  >
+                    {user.name}
+                  </span>
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-700">
+                    {userInitial || "?"}
+                  </div>
                   <button
                     type="button"
                     onClick={handleSignOut}
                     disabled={isSigningOut}
-                            className="rounded-md border border-emerald-600 px-3 py-1 text-sm sm:px-4 sm:py-2 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-md border border-emerald-600 px-3 py-1 text-sm sm:px-4 sm:py-2 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSigningOut ? "Signing out..." : "Sign Out"}
                   </button>
@@ -203,7 +209,9 @@ export default function Header() {
                         </div>
                         <div className="flex flex-col">
                           <span className="font-semibold text-emerald-700">{user.name}</span>
-                          <span className="text-sm text-gray-500">{user.points} pts • {user.streak}d streak</span>
+                          <span className="text-sm text-gray-500">
+                            {user.points} pts • {user.streak}d streak
+                          </span>
                         </div>
                       </div>
 
@@ -226,7 +234,6 @@ export default function Header() {
           </div>
         </div>
       )}
-
     </header>
   );
 }

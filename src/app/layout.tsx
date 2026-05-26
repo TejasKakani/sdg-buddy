@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   description: "A platform designed to help individuals align their daily actions with the united nation sustainable development goals (UNSDGs).",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/icon-192.png",
+    shortcut: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
