@@ -1,9 +1,16 @@
 import { ProfileModel } from "@/models/profile.model";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { readTokenPayload } from "@/utils/getTokenPayload";
 
-export async function GET(){
+export async function GET(req: NextRequest){
     try{
+        const payload = await readTokenPayload(req);
+        if (!payload?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         await connectToDatabase();
         const leaderboard = await ProfileModel.find({})
             .sort({ totalPoints: -1, createdAt: 1 })
@@ -19,9 +26,9 @@ export async function GET(){
             status: 200
         }
         )
-    }catch(err: unknown){
-        const message = err instanceof Error ? err.message : "Error fetching leaderboard";
-        return NextResponse.json({error: message}, {
+    }catch(err){
+        console.error("Fetch leaderboard failed", err instanceof Error ? err.message : "unknown error");
+        return NextResponse.json({error: "Error fetching leaderboard"}, {
             status: 500
         })
     }

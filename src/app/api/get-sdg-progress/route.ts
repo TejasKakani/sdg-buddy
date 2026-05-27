@@ -1,4 +1,4 @@
-import getTokenPayload from "@/utils/getTokenPayload";
+import { readTokenPayload } from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextRequest, NextResponse } from "next/server";
 import { ProfileModel } from "@/models/profile.model";
@@ -8,9 +8,12 @@ export async function GET(
 ){
     try{
         await connectToDatabase();
-        const tokenPayload = await getTokenPayload(req);
-        const tokenPayloadJson = (await tokenPayload.json()) as { id: string };
-        const userId = tokenPayloadJson.id;
+        const payload = await readTokenPayload(req);
+        if (!payload?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const userId = payload.id;
         
         // Read SDG progress directly from Profile instead of aggregating from Actions
         const profile = await ProfileModel.findOne({ user: userId });
@@ -33,9 +36,9 @@ export async function GET(
         })).sort((a, b) => a.sdgId - b.sdgId);
         
         return NextResponse.json(sdgData, { status: 200 });
-    }catch(err: unknown){
-        const message = err instanceof Error ? err.message : "Error fetching SDG progress";
-        return NextResponse.json({error: message}, {
+    }catch(err){
+        console.error("Fetch SDG progress failed", err instanceof Error ? err.message : "unknown error");
+        return NextResponse.json({error: "Error fetching SDG progress"}, {
             status: 500
         })
     }

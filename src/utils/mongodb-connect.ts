@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { env } from "@/utils/env";
 
 type ConnectionObject = {
     isConnected?: number;
@@ -8,16 +9,22 @@ const connection: ConnectionObject = {};
 
 export async function connectToDatabase(): Promise<void>{
     if (connection.isConnected) {
-        console.log("Using existing connection");
         return;
     }
     try{
-        const db = await mongoose.connect(process.env.MONGODB_URI || "", {});
+        const db = await mongoose.connect(env.MONGODB_URI, {
+            maxPoolSize: 10,
+            minPoolSize: 2,
+            serverSelectionTimeoutMS: 8000,
+            socketTimeoutMS: 45000,
+            waitQueueTimeoutMS: 10000,
+        });
         connection.isConnected = db.connections[0].readyState;
-        console.log("New connection created");
     }
     catch (error){
-        console.error("Error connecting to database: ", error);
-        process.exit(1);
+        connection.isConnected = 0;
+        throw new Error(
+            `Database connection failed: ${error instanceof Error ? error.message : "unknown error"}`
+        );
     }
 }

@@ -1,8 +1,15 @@
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { isProduction } from "@/utils/env";
+import { hasValidSameOrigin } from "@/utils/csrf";
 
-export async function GET(){
+export async function POST(req: NextRequest){
     try{
+        if (!hasValidSameOrigin(req)) {
+            return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+        }
+
         await connectToDatabase();
 
         const response = NextResponse.json("Signed out successfully", {
@@ -11,6 +18,9 @@ export async function GET(){
 
         response.cookies.set("token", "", {
             httpOnly: true,
+            secure: isProduction,
+            sameSite: "strict",
+            path: "/",
             expires: new Date(0)
         });
 
@@ -23,4 +33,8 @@ export async function GET(){
         });
 
     }
+}
+
+export async function GET(){
+    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }

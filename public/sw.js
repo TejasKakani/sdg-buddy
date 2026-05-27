@@ -1,15 +1,13 @@
 // Minimal service worker to satisfy installability checks
 // Keeps behavior simple: installs, activates, and does a basic network-first fetch
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
 	// Activate immediately
-	// eslint-disable-next-line no-restricted-globals
 	self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
 	// Take control of uncontrolled clients immediately
-	// eslint-disable-next-line no-restricted-globals
 	event.waitUntil(self.clients.claim());
 });
 

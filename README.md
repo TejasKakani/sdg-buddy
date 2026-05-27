@@ -118,6 +118,40 @@ Troubleshooting:
 - If you see failures from the Hugging Face API, the app will log the error and silently fall back to the local embedder.
 - Ensure your Hugging Face quota and model name are correct for the selected model.
 
+---
+
+## Production Deployment (Vercel)
+
+### Required Environment Variables
+
+Set these in your Vercel project settings:
+
+- `DOMAIN` (example: `https://your-domain.com`)
+- `TOKEN_SECRET` (at least 32 characters)
+- `MONGODB_URI`
+- `RESEND_API_KEY`
+- `MAIL_FROM` (verified sender)
+- `GEMINI_API_KEY`
+- `HUGGINGFACE_API_KEY` (optional)
+- `HUGGINGFACE_MODEL` (optional)
+- `ALLOWED_ORIGINS` (comma-separated, e.g. `your-domain.com,localhost:3000`)
+
+### Deploy Steps
+
+1. Push your branch to GitHub.
+2. Import the repo in Vercel.
+3. Add all required environment variables.
+4. Deploy and open the preview URL.
+5. Verify health endpoint: `/api/health` returns `status: "ok"`.
+
+### Post-Deploy Smoke Tests
+
+1. Sign up, verify email, and sign in.
+2. Confirm dashboard data loads on `/action`.
+3. Log an action and refresh chart/leaderboard.
+4. Confirm sign out clears session and redirects to `/sign-in`.
+
+
 
 
 

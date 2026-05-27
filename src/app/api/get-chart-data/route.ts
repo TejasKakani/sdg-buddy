@@ -1,7 +1,7 @@
 import { ProfileModel } from "@/models/profile.model";
 import type { MonthlySDGData, YearlyMonthlyPoints as ProfileYearlyMonthlyPoints } from "@/models/profile.model";
 import { getSDGColor, getSDGLogo, getSDGName, SDG_GOALS } from "@/constants/sdgGoals";
-import getTokenPayload from "@/utils/getTokenPayload";
+import { readTokenPayload } from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextRequest } from "next/server";
 
@@ -73,9 +73,12 @@ export async function GET(
 ){
     try{
         await connectToDatabase();
-        const tokenData = await getTokenPayload(req);
-        const tokenDataJson = (await tokenData.json()) as { id: string };
-        const userId = tokenDataJson.id;
+    const payload = await readTokenPayload(req);
+    if (!payload?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
+    const userId = payload.id;
         const yearParam = req.nextUrl.searchParams.get("year");
         const selectedYear = yearParam ? Number.parseInt(yearParam, 10) : undefined;
         
@@ -92,9 +95,9 @@ export async function GET(
             status: 200
         });
 
-    }catch(err: unknown){
-      const message = err instanceof Error ? err.message : "Error fetching chart data";
-      return new Response(JSON.stringify({error: message}), {
+    }catch(err){
+      console.error("Fetch chart data failed", err instanceof Error ? err.message : "unknown error");
+      return new Response(JSON.stringify({error: "Error fetching chart data"}), {
             status: 500
         })
     }

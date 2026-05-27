@@ -1,25 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ActionModel } from "@/models/action.model";
 import { connectToDatabase } from "@/utils/mongodb-connect";
-import getTokenPayload from "@/utils/getTokenPayload";
+import { readTokenPayload } from "@/utils/getTokenPayload";
 import mongoose from "mongoose";
+import { recommendationRequestSchema } from "@/utils/validation";
+import { checkRateLimit, getRequestIdentifier } from "@/utils/rate-limit";
+import { hasValidSameOrigin } from "@/utils/csrf";
 
 export async function POST(request: NextRequest) {
     try {
-        const tokenData = await getTokenPayload(request);
-        const tokenDataJson = (await tokenData.json()) as { id: string };
+        if (!hasValidSameOrigin(request)) {
+            return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+        }
 
-        if (!tokenDataJson?.id) {
+        const ip = getRequestIdentifier(request.headers.get("x-forwarded-for"), "unknown");
+        const rateLimit = checkRateLimit({
+            key: `recommendations:${ip}`,
+            limit: 30,
+            windowMs: 60_000,
+        });
+
+        if (!rateLimit.success) {
+            return NextResponse.json(
+                { error: "Too many recommendation requests. Please try again shortly." },
+                {
+                    status: 429,
+                    headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+                }
+            );
+        }
+
+        const payload = await readTokenPayload(request);
+
+        if (!payload?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         await connectToDatabase();
 
-        const body = await request.json();
-        const limit = body.limit || 5;
+        const body = await request.json().catch(() => ({}));
+        const parseResult = recommendationRequestSchema.safeParse(body);
+        if (!parseResult.success) {
+            return NextResponse.json({ error: "Invalid recommendation request payload" }, { status: 400 });
+        }
+        const limit = parseResult.data.limit;
 
         // Step 1: Get user's past actions (last 5)
-        const userActions = await ActionModel.find({ user: tokenDataJson.id })
+        const userActions = await ActionModel.find({ user: payload.id })
             .sort({ completedAt: -1 })
             .limit(5);
 
@@ -84,8 +111,8 @@ export async function POST(request: NextRequest) {
                     $limit: limit,
                 },
             ]);
-        } catch (vectorError) {
-            console.warn("Vector search unavailable, using fallback ranking:", vectorError);
+        } catch {
+            console.warn("Vector search unavailable, using fallback ranking");
             recommendations = await getFallbackRecommendations(avgEmbedding, userActionIds, limit);
         }
 
@@ -95,7 +122,7 @@ export async function POST(request: NextRequest) {
             count: recommendations.length,
         });
     } catch (error) {
-        console.error("Error fetching recommendations:", error);
+        console.error("Error fetching recommendations", error instanceof Error ? error.message : "unknown error");
         return NextResponse.json(
             { error: "Failed to fetch recommendations" },
             { status: 500 }
@@ -130,7 +157,7 @@ function isZeroVector(vector: number[]): boolean {
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length || a.length === 0) return 0;
+    if (a.length !== b.length || a.length === 0 || b.length === 0) return 0;
 
     let dot = 0;
     let magA = 0;
@@ -221,7 +248,7 @@ async function getPopularRecommendations(limit: number) {
             count: popular.length,
         });
     } catch (error) {
-        console.error("Error fetching popular recommendations:", error);
+        console.error("Error fetching popular recommendations", error instanceof Error ? error.message : "unknown error");
         return NextResponse.json({
             success: false,
             recommendations: [],

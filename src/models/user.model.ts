@@ -1,4 +1,3 @@
-import { User } from 'lucide-react';
 import mongoose, { Schema } from 'mongoose';
 
 export interface User {
@@ -6,8 +5,8 @@ export interface User {
     email: string;
     password: string;
     isVerified?: boolean;
-    passwordResetToken?: string;
-    passwordResetExpires?: Date;
+    resetPasswordToken?: string;
+    resetPasswordExpires?: Date;
     verifyEmailToken?: string;
     verifyEmailTokenExpires?: Date;
     }
@@ -29,10 +28,10 @@ const UserSchema: Schema<User> = new mongoose.Schema<User>({
         type: String, 
         required: [true, 'Please provide your password']
     },
-    passwordResetToken: { 
+    resetPasswordToken: {
         type: String 
     },
-    passwordResetExpires: { 
+    resetPasswordExpires: {
         type: Date 
     },
     verifyEmailToken: {

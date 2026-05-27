@@ -55,7 +55,7 @@ export default function Header() {
 
     try {
       await fetch("/api/users/sign-out", {
-        method: "GET",
+        method: "POST",
       });
       setUser(INITIAL_USER);
       router.replace("/sign-in");
@@ -147,7 +147,7 @@ export default function Header() {
                 <div className="flex items-center gap-2 sm:gap-4">
                   <span
                     className={`text-xl font-bold text-emerald-600 hidden sm:inline-block ${
-                      shouldTruncateUserName ? "max-w-[280px] truncate" : "max-w-none"
+                      shouldTruncateUserName ? "max-w-70 truncate" : "max-w-none"
                     }`}
                     title={shouldTruncateUserName ? user.name : undefined}
                   >

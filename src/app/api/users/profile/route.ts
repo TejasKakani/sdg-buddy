@@ -1,15 +1,19 @@
 import { UserModel } from "@/models/user.model";
-import getTokenPayload from "@/utils/getTokenPayload";
+import { readTokenPayload } from "@/utils/getTokenPayload";
+import { connectToDatabase } from "@/utils/mongodb-connect";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
     req: NextRequest
 ){
-    const userPayload = await getTokenPayload(req);
-    const userPayloadJson = (await userPayload.json()) as { id: string };
+    await connectToDatabase();
+    const userPayload = await readTokenPayload(req);
+    if (!userPayload?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const user = await UserModel.findOne({
-        _id: userPayloadJson.id
+        _id: userPayload.id
     }).select("-password");
 
     if(!user){

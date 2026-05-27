@@ -1,17 +1,45 @@
 import { connectToDatabase } from "@/utils/mongodb-connect";
-import { User, UserModel } from "@/models/user.model";
+import { UserModel } from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@/utils/mailer";
 import bcrypt from 'bcrypt';
 import { ProfileModel } from "@/models/profile.model";
+import { signUpSchema } from "@/utils/validation";
+import { checkRateLimit, getRequestIdentifier } from "@/utils/rate-limit";
+import { hasValidSameOrigin } from "@/utils/csrf";
 
 export async function POST(
     req: NextRequest,
 ){
     try{
+        if (!hasValidSameOrigin(req)) {
+            return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+        }
+
+        const ip = getRequestIdentifier(req.headers.get("x-forwarded-for"), "unknown");
+        const rateLimit = checkRateLimit({
+            key: `signup:${ip}`,
+            limit: 8,
+            windowMs: 60_000,
+        });
+
+        if (!rateLimit.success) {
+            return NextResponse.json(
+                { error: "Too many sign-up attempts. Please try again shortly." },
+                {
+                    status: 429,
+                    headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+                }
+            );
+        }
+
         await connectToDatabase();
-        const data: User = await req.json();
-        const {name, email, password} = data;
+        const parseResult = signUpSchema.safeParse(await req.json());
+        if (!parseResult.success) {
+            return NextResponse.json({ error: "Invalid sign-up payload" }, { status: 400 });
+        }
+
+        const {name, email, password} = parseResult.data;
 
         const user = await UserModel.findOne({
             email: email
@@ -46,14 +74,19 @@ export async function POST(
             userId: savedUser._id.toString()
         });
 
-        return NextResponse.json(savedUser, {
+        return NextResponse.json({
+            user: {
+                id: savedUser._id,
+                name: savedUser.name,
+                email: savedUser.email,
+            }
+        }, {
             status: 201
         });
 
-    }catch(err: unknown){
-        const message = err instanceof Error ? err.message : "Error in sign-up";
-        console.error("Error in sign-up:", err);
-        return NextResponse.json({error: message}, {
+    }catch(err){
+        console.error("Sign-up failed", err instanceof Error ? err.message : "unknown error");
+        return NextResponse.json({error: "Error in sign-up"}, {
             status: 500
         })
     }

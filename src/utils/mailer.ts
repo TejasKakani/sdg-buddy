@@ -1,6 +1,8 @@
 import { UserModel } from '@/models/user.model';
-import bcrypt from "bcrypt";
 import { Resend } from 'resend';
+import crypto from "crypto";
+import { env } from '@/utils/env';
+import util from 'util';
 
 
 
@@ -8,11 +10,7 @@ import { Resend } from 'resend';
 let _resendClient: Resend | null = null;
 function getResendClient() {
   if (_resendClient) return _resendClient;
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    throw new Error('RESEND_API_KEY environment variable is not set');
-  }
-  _resendClient = new Resend(key);
+  _resendClient = new Resend(env.RESEND_API_KEY);
   return _resendClient;
 }
 
@@ -23,27 +21,25 @@ export async function sendMail({ email, emailType, userId }: {
 }) {
 
   try {
-    const domain = process.env.DOMAIN;
-    if (!domain) {
-      throw new Error('DOMAIN environment variable is not set');
-    }
-    const mailFrom = process.env.MAIL_FROM || `onboarding@resend.dev`;
+    const domain = env.DOMAIN;
+    const mailFrom = env.MAIL_FROM || "onboarding@resend.dev";
     const resend = getResendClient();
-    const verifyEmailToken = await bcrypt.hash(userId, 10);
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
     const verifyEmailHtml = `
-    <p>Click <a href="${domain}/verify-email?token=${verifyEmailToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
+    <p>Click <a href="${domain}/verify-email?token=${rawToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
     or copy and paste the following link in your browser.
     </p>
-    ${domain}/verify-email?token=${verifyEmailToken}
+    ${domain}/verify-email?token=${rawToken}
     <p>If you didn't request this, please ignore this email.</p>
   `;
 
     const resetPasswordHtml = `
-      <p>Click <a href="${domain}/reset-password?token=${verifyEmailToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
+      <p>Click <a href="${domain}/reset-password?token=${rawToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
       or copy and paste the following link in your browser.
       </p>
-      ${domain}/reset-password?token=${verifyEmailToken}
+      ${domain}/reset-password?token=${rawToken}
       <p>If you didn't request this, please ignore this email.</p>
     `;
 
@@ -56,7 +52,7 @@ export async function sendMail({ email, emailType, userId }: {
         htmlBody = verifyEmailHtml;
         await UserModel.findByIdAndUpdate(userId, {
           $set: {
-            verifyEmailToken,
+            verifyEmailToken: hashedToken,
             verifyEmailTokenExpires: Date.now() + 3600000
           }
         });
@@ -66,8 +62,8 @@ export async function sendMail({ email, emailType, userId }: {
         htmlBody = resetPasswordHtml;
         await UserModel.findByIdAndUpdate(userId, {
           $set: {
-            resetPasswordToken: verifyEmailToken,
-            resetPasswordTokenExpires: Date.now() + 3600000
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: Date.now() + 3600000
           }
         });
         break;
@@ -83,11 +79,20 @@ export async function sendMail({ email, emailType, userId }: {
     };
 
     const mailResponse = await resend.emails.send(options);
+    try {
+      // Log a detailed inspected representation of the response (truncated)
+      const inspected = util.inspect(mailResponse, { depth: 5, colors: false });
+      console.info("Resend send response (inspected):", inspected.slice(0, 2000));
+    } catch (e) {
+      // ignore logging errors
+    }
 
     return mailResponse;
 
   }
   catch (err: unknown) {
+    // Log full error for diagnostics (do not print secrets)
+    console.error("Mailer error:", err instanceof Error ? err.message : err);
     const message = err instanceof Error ? err.message : "Error sending email";
     throw new Error(message);
 

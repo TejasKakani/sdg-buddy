@@ -1,25 +1,96 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ActionModel } from "@/models/action.model";
-import getTokenPayload from "@/utils/getTokenPayload";
+import { readTokenPayload } from "@/utils/getTokenPayload";
 import { connectToDatabase } from "@/utils/mongodb-connect";
 import { ProfileModel } from "@/models/profile.model";
 import { GoogleGenAI } from "@google/genai";
 import { generateEmbedding } from "@/utils/generateEmbedding";
+import { actionLogSchema } from "@/utils/validation";
+import { checkRateLimit, getRequestIdentifier } from "@/utils/rate-limit";
+import { env } from "@/utils/env";
+import { hasValidSameOrigin } from "@/utils/csrf";
 
-// The client gets the API key from the environment variable `GEMINI_API_KEY`.
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+
+function normalizeAiResult(input: unknown): { sdgs: number[]; points: number } {
+    if (!input || typeof input !== "object") {
+        return { sdgs: [17], points: 5 };
+    }
+
+    const data = input as { sdgs?: unknown; points?: unknown };
+    const parsedSdgs = Array.isArray(data.sdgs)
+        ? data.sdgs
+              .map((value) => Number.parseInt(String(value), 10))
+              .filter((value) => Number.isInteger(value) && value >= 1 && value <= 17)
+        : [17];
+
+    const uniqueSdgs = Array.from(new Set(parsedSdgs));
+    const pointsNum = Number.parseInt(String(data.points ?? 5), 10);
+    const safePoints = Number.isInteger(pointsNum) ? Math.min(Math.max(pointsNum, 5), 50) : 5;
+
+    return {
+        sdgs: uniqueSdgs.length > 0 ? uniqueSdgs : [17],
+        points: safePoints,
+    };
+}
+
+function parseAiResponseText(text: string | undefined): { sdgs: number[]; points: number } {
+    if (!text) {
+        return { sdgs: [17], points: 5 };
+    }
+
+    const normalizedText = text
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+
+    try {
+        return normalizeAiResult(JSON.parse(normalizedText));
+    } catch {
+        return { sdgs: [17], points: 5 };
+    }
+}
 
 export async function POST(
     req: NextRequest
 ){
     try{
-        await connectToDatabase();
-        const {description} = (await req.json()) as { description: string };
-        const tokenData = await getTokenPayload(req);
-        const tokenDataJson = (await tokenData.json()) as { id: string };
+        if (!hasValidSameOrigin(req)) {
+            return NextResponse.json({ error: "Invalid request origin" }, { status: 403 });
+        }
 
-        // --- GEMINI AI BLOCK START ---
-        
+        const ip = getRequestIdentifier(req.headers.get("x-forwarded-for"), "unknown");
+        const rateLimit = checkRateLimit({
+            key: `actions:${ip}`,
+            limit: 20,
+            windowMs: 60_000,
+        });
+
+        if (!rateLimit.success) {
+            return NextResponse.json(
+                { error: "Too many action submissions. Please try again shortly." },
+                {
+                    status: 429,
+                    headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+                }
+            );
+        }
+
+        await connectToDatabase();
+        const payload = await readTokenPayload(req);
+
+        if (!payload?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const parseResult = actionLogSchema.safeParse(await req.json());
+        if (!parseResult.success) {
+            return NextResponse.json({ error: "Invalid action payload" }, { status: 400 });
+        }
+
+        const { description } = parseResult.data;
+
         const prompt = `
             Analyze the following social/environmental action description: "${description}"
             
@@ -37,42 +108,49 @@ export async function POST(
             model: "gemini-3-flash-preview",
             contents: prompt,
         });
-        
-        const responseText = result.text?.trim();
-        const aiAnalysis = JSON.parse(responseText || ""); // Validate JSON format
 
-        // Generate embedding for the description
-        // Log which embedder will be attempted and generate embedding
-        const usingHf = !!process.env.HUGGINGFACE_API_KEY;
-        console.info(`Embedding: attempting ${usingHf ? `Hugging Face model ${process.env.HUGGINGFACE_MODEL || 'default'}` : 'local embedder'}`);
+        const aiAnalysis = parseAiResponseText(result.text?.trim());
+
         const descriptionEmbedding = await generateEmbedding(description);
-        console.info(`Embedding generated (length=${Array.isArray(descriptionEmbedding) ? descriptionEmbedding.length : 'unknown'})`);
 
         const action = new ActionModel({
-            user: tokenDataJson.id,
+            user: payload.id,
             description: description,
-            sdgs: aiAnalysis.sdgs || [17],
-            points: aiAnalysis.points || 5,
+            sdgs: aiAnalysis.sdgs,
+            points: aiAnalysis.points,
             completedAt: new Date(),
             descriptionEmbedding: descriptionEmbedding,
             category: 'general'
         });
         await action.save();
 
-        
-        const userProfile = await ProfileModel.findOne({user: tokenDataJson.id});
-        const now = new Date();
-        const today = new Date(now.setHours(0, 0, 0, 0));
-        const lastAction = userProfile!.lastActivity ? new Date(userProfile!.lastActivity.setHours(0, 0, 0, 0)) : null;
+        const userProfile = await ProfileModel.findOne({user: payload.id});
         
         if(userProfile){
-            userProfile.totalPoints += action.points;
-            const diffInDays = (today.getTime() - lastAction!.getTime()) / (1000 * 60 * 60 * 24);    
-            if (diffInDays > 1) {
-                userProfile.currentStreak = 1;
-            } else if (diffInDays === 1) {
-                userProfile.currentStreak += 1;
+            const now = new Date();
+            const today = new Date(now);
+            today.setHours(0, 0, 0, 0);
+            const lastActivity = userProfile.lastActivity ? new Date(userProfile.lastActivity) : null;
+            if (lastActivity) {
+                lastActivity.setHours(0, 0, 0, 0);
             }
+
+            userProfile.totalPoints += action.points;
+            if (!lastActivity) {
+                userProfile.currentStreak = 1;
+            } else {
+                const diffInDays = (today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24);
+                if (diffInDays > 1) {
+                    userProfile.currentStreak = 1;
+                } else if (diffInDays === 1) {
+                    userProfile.currentStreak += 1;
+                }
+            }
+
+            if (userProfile.currentStreak < 1) {
+                userProfile.currentStreak = 1;
+            }
+
             userProfile.acheivements += 1;
             userProfile.lastActivity = new Date();
             
@@ -123,10 +201,9 @@ export async function POST(
         return NextResponse.json({message: "Action logged successfully"}, {
             status: 201,
         });
-    }catch(err: unknown){
-        const message = err instanceof Error ? err.message : "Error logging action";
-        console.error("Error logging action:", err);
-        return NextResponse.json({error: message}, {
+    }catch(err){
+        console.error("Error logging action", err instanceof Error ? err.message : "unknown error");
+        return NextResponse.json({error: "Error logging action"}, {
             status: 500
         })
     }
