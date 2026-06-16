@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         // If no past actions, return popular actions from community
         if (userActions.length === 0) {
-            return getPopularRecommendations(limit);
+            return NextResponse.json(await getPopularRecommendations(limit));
         }
 
         // Step 2: Get embeddings from user's actions (filter out zero vectors)
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
         // If no valid embeddings, return popular recommendations
         if (userEmbeddings.length === 0) {
-            return getPopularRecommendations(limit);
+            return NextResponse.json(await getPopularRecommendations(limit));
         }
 
         // Step 3: Calculate average embedding (centroid of user's interests)
@@ -242,17 +242,17 @@ async function getPopularRecommendations(limit: number) {
             },
         ]);
 
-        return NextResponse.json({
+        return {
             success: true,
             recommendations: popular,
             count: popular.length,
-        });
+        };
     } catch (error) {
         console.error("Error fetching popular recommendations", error instanceof Error ? error.message : "unknown error");
-        return NextResponse.json({
+        return {
             success: false,
             recommendations: [],
             count: 0,
-        });
+        };
     }
 }

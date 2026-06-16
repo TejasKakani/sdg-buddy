@@ -34,6 +34,43 @@ function normalizeAiResult(input: unknown): { sdgs: number[]; points: number } {
     };
 }
 
+export async function GET(req: NextRequest) {
+    try {
+        await connectToDatabase();
+        const payload = await readTokenPayload(req);
+        if (!payload?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, Number(searchParams.get("page")) || 1);
+        const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 10));
+        const skip = (page - 1) * limit;
+
+        const [actions, total] = await Promise.all([
+            ActionModel.find({ user: payload.id })
+                .sort({ completedAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            ActionModel.countDocuments({ user: payload.id }),
+        ]);
+
+        return NextResponse.json({
+            actions,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        }, { status: 200 });
+    } catch (err) {
+        console.error("Error fetching action history", err instanceof Error ? err.message : "unknown error");
+        return NextResponse.json({ error: "Error fetching action history" }, { status: 500 });
+    }
+}
+
 function parseAiResponseText(text: string | undefined): { sdgs: number[]; points: number } {
     if (!text) {
         return { sdgs: [17], points: 5 };

@@ -145,17 +145,22 @@ export default function Header() {
                 </ButtonLink>
               ) : (
                 <div className="flex items-center gap-2 sm:gap-4">
-                  <span
-                    className={`text-xl font-bold text-emerald-600 hidden sm:inline-block ${
-                      shouldTruncateUserName ? "max-w-70 truncate" : "max-w-none"
-                    }`}
-                    title={shouldTruncateUserName ? user.name : undefined}
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-2 sm:gap-4 hover:opacity-80 transition-opacity"
                   >
-                    {user.name}
-                  </span>
-                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-700">
-                    {userInitial || "?"}
-                  </div>
+                    <span
+                      className={`text-xl font-bold text-emerald-600 hidden sm:inline-block ${
+                        shouldTruncateUserName ? "max-w-70 truncate" : "max-w-none"
+                      }`}
+                      title={shouldTruncateUserName ? user.name : undefined}
+                    >
+                      {user.name}
+                    </span>
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-700">
+                      {userInitial || "?"}
+                    </div>
+                  </Link>
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -203,7 +208,11 @@ export default function Header() {
                     </ButtonLink>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3">
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-700">
                           {userInitial || "?"}
                         </div>
@@ -213,7 +222,7 @@ export default function Header() {
                             {user.points} pts • {user.streak}d streak
                           </span>
                         </div>
-                      </div>
+                      </Link>
 
                       <button
                         type="button"

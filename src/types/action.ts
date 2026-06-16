@@ -19,7 +19,16 @@ export interface User {
     logo: string;
   }
   
-  export interface ChartData {
+  export interface ActionHistoryItem {
+  _id: string;
+  description: string;
+  sdgs: number[];
+  points: number;
+  completedAt: string;
+  category?: string;
+}
+
+export interface ChartData {
     labels: string[];
     co2: number[];
     water: number[];
