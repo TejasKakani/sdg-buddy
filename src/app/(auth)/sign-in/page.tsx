@@ -26,7 +26,7 @@ const LeafIcon = () => (
 export default function LoginScreen() {
   const [actionsLogged, setActionsLogged] = useState(15482);
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export default function LoginScreen() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
         credentials: 'include',
       });
 
@@ -134,7 +134,7 @@ export default function LoginScreen() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ identifier }),
         credentials: 'include',
       });
       const data = await response.json().catch(() => null);
@@ -175,15 +175,18 @@ export default function LoginScreen() {
           
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="sr-only">Email</label>
-              <input 
-                id="email"
-                type="email" 
+              <label htmlFor="identifier" className="sr-only">Email or username</label>
+              <input
+                id="identifier"
+                type="text"
                 required
-                className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all" 
-                placeholder="email@address.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
+                placeholder="Email or username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 disabled={isSubmitting} // Disable inputs while submitting
               />
             </div>
@@ -208,7 +211,7 @@ export default function LoginScreen() {
                 <button
                   type="button"
                   onClick={handleResendVerification}
-                  disabled={isResending || !email}
+                  disabled={isResending || !identifier}
                   className="font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors underline"
                 >
                   {isResending ? 'Sending…' : 'Resend verification email'}

@@ -42,10 +42,14 @@ export async function POST(
             return NextResponse.json({ error: "Invalid sign-in payload" }, { status: 400 });
         }
 
-        const {email, password} = parseResult.data;
+        const {identifier, password} = parseResult.data;
 
+        // The identifier may be an email or a username. Emails are stored
+        // lowercased and usernames are lowercase-only, so a lowercased lookup
+        // against both fields resolves either case.
+        const normalizedIdentifier = identifier.toLowerCase();
         const user = await UserModel.findOne({
-            email
+            $or: [{ email: normalizedIdentifier }, { username: normalizedIdentifier }],
         });
 
         if(!user){

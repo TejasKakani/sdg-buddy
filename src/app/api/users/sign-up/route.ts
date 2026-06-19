@@ -39,22 +39,23 @@ export async function POST(
             return NextResponse.json({ error: "Invalid sign-up payload" }, { status: 400 });
         }
 
-        const {name, email, password} = parseResult.data;
+        const {name, username, email, password} = parseResult.data;
 
-        const user = await UserModel.findOne({
-            email: email
+        const existing = await UserModel.findOne({
+            $or: [{ email }, { username }],
         });
 
-        if(user){
-            return NextResponse.json({error: "User already exists"},{
-                status: 400
-            })
+        if (existing) {
+            const field = existing.email === email ? "Email" : "Username";
+            return NextResponse.json({ error: `${field} already exists` }, { status: 400 });
         }
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new UserModel({
             name,
+            username,
             email,
             password: hashedPassword,
         });
@@ -78,6 +79,7 @@ export async function POST(
             user: {
                 id: savedUser._id,
                 name: savedUser.name,
+                username: savedUser.username,
                 email: savedUser.email,
             }
         }, {
@@ -85,6 +87,13 @@ export async function POST(
         });
 
     }catch(err){
+        // Handle the race where two requests pass the uniqueness check then both
+        // try to save the same email/username.
+        if (err && typeof err === "object" && (err as { code?: number }).code === 11000) {
+            const key = Object.keys((err as { keyPattern?: Record<string, unknown> }).keyPattern ?? {})[0];
+            const field = key === "username" ? "Username" : "Email";
+            return NextResponse.json({ error: `${field} already exists` }, { status: 400 });
+        }
         console.error("Sign-up failed", err instanceof Error ? err.message : "unknown error");
         return NextResponse.json({error: "Error in sign-up"}, {
             status: 500

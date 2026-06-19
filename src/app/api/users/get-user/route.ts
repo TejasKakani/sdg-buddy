@@ -15,7 +15,7 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const user = await UserModel.findById(payload.id).select("_id name email isVerified createdAt updatedAt");
+        const user = await UserModel.findById(payload.id).select("_id name username email isVerified createdAt updatedAt");
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });

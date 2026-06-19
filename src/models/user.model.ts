@@ -2,6 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 
 export interface User {
     name: string;
+    username: string;
     email: string;
     password: string;
     isVerified?: boolean;
@@ -12,11 +13,21 @@ export interface User {
     }
 
 const UserSchema: Schema<User> = new mongoose.Schema<User>({
-    name: { 
-        type: String, 
+    name: {
+        type: String,
         required: [true, 'Please provide your name']
     },
-    email: { 
+    username: {
+        type: String,
+        required: [true, 'Please provide a username'],
+        unique: [true, 'Username already taken'],
+        lowercase: true,
+        trim: true,
+        minlength: [3, 'Username must be at least 3 characters'],
+        maxlength: [30, 'Username must be at most 30 characters'],
+        match: [/^[a-z0-9_]+$/, 'Username may only contain lowercase letters, numbers, and underscores']
+    },
+    email: {
         type: String, required: [true, 'Please provide your email'], 
         unique: [true, 'Email already exists']
     },

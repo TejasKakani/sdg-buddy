@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionHistory from "@/components/actionPage/ActionHistory";
+import Friends from "@/components/profile/Friends";
 
 export default function ProfilePage() {
   const router = useRouter();
 
   const [user, setUser] = useState({
     name: "",
+    username: "",
     points: 0,
     streak: 0,
     achievements: 0,
@@ -23,14 +25,19 @@ export default function ProfilePage() {
         setIsLoading(true);
         setError(null);
 
-        const res = await fetch("/api/get-dashboard-profile");
-        if (!res.ok) throw new Error("Failed to load profile");
+        const [profileRes, userRes] = await Promise.all([
+          fetch("/api/get-dashboard-profile"),
+          fetch("/api/users/get-user"),
+        ]);
+        if (!profileRes.ok) throw new Error("Failed to load profile");
 
-        const data = await res.json();
+        const data = await profileRes.json();
+        const userData = userRes.ok ? await userRes.json() : null;
 
         if (data?.profile) {
           setUser({
             name: data.profile.name || "User",
+            username: userData?.user?.username || "",
             points: data.profile.totalPoints || 0,
             streak: data.profile.currentStreak || 0,
             achievements: data.profile.acheivements || 0,
@@ -82,6 +89,9 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-emerald-600">{user.name}</h2>
+                {user.username && (
+                  <p className="text-slate-500 text-sm mt-0.5">@{user.username}</p>
+                )}
                 <p className="text-emerald-800 mt-1">Your sustainability journey</p>
               </div>
             </div>
@@ -105,6 +115,9 @@ export default function ProfilePage() {
 
         {/* Action History */}
         <ActionHistory />
+
+        {/* Friends */}
+        <Friends />
       </main>
     </div>
   );

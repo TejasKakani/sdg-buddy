@@ -41,13 +41,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
         }
 
-        const { email } = parseResult.data;
-        const user = await UserModel.findOne({ email });
+        const normalizedIdentifier = parseResult.data.identifier.toLowerCase();
+        const user = await UserModel.findOne({
+            $or: [{ email: normalizedIdentifier }, { username: normalizedIdentifier }],
+        });
 
         // Only send when there's an unverified account; otherwise stay silent.
         if (user && !user.isVerified) {
             await sendMail({
-                email,
+                email: user.email,
                 emailType: "signup",
                 userId: user._id.toString(),
             });

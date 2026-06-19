@@ -34,6 +34,7 @@ const sdgGoals = SDG_GOALS.filter((goal) => featuredGoalIds.includes(goal.id));
 export default function SignUpScreen() {
   const router = useRouter();
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +91,7 @@ export default function SignUpScreen() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, username, email, password }),
       });
 
       if (!response.ok) {
@@ -105,6 +106,7 @@ export default function SignUpScreen() {
 
       setSuccess('Account created! Please check your email to verify your account.');
       setName('');
+      setUsername('');
       setEmail('');
       setPassword('');
       
@@ -186,8 +188,25 @@ export default function SignUpScreen() {
                 />
               </div>
               <div>
+                <label htmlFor="username-signup" className="sr-only">Username</label>
+                <input
+                  id="username-signup" type="text" required
+                  className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all disabled:opacity-50"
+                  placeholder="Username (e.g. green_hero)"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  disabled={isSubmitting}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  3–30 characters: lowercase letters, numbers, and underscores. Friends find you by this.
+                </p>
+              </div>
+              <div>
                 <label htmlFor="email-signup" className="sr-only">Email</label>
-                <input 
+                <input
                   id="email-signup" type="email" required
                   className="w-full px-4 py-3 bg-gray-800/60 border border-white/10 rounded-lg placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all disabled:opacity-50" 
                   placeholder="email@address.com"
