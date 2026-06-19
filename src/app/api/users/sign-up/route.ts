@@ -17,7 +17,7 @@ export async function POST(
         }
 
         const ip = getRequestIdentifier(req.headers.get("x-forwarded-for"), "unknown");
-        const rateLimit = checkRateLimit({
+        const rateLimit = await checkRateLimit({
             key: `signup:${ip}`,
             limit: 8,
             windowMs: 60_000,

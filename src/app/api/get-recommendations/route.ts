@@ -7,6 +7,11 @@ import { recommendationRequestSchema } from "@/utils/validation";
 import { checkRateLimit, getRequestIdentifier } from "@/utils/rate-limit";
 import { hasValidSameOrigin } from "@/utils/csrf";
 
+// Vector search + app-side cosine ranking over many candidates can exceed the
+// default 10s function limit.
+export const maxDuration = 30;
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
     try {
         if (!hasValidSameOrigin(request)) {
@@ -14,7 +19,7 @@ export async function POST(request: NextRequest) {
         }
 
         const ip = getRequestIdentifier(request.headers.get("x-forwarded-for"), "unknown");
-        const rateLimit = checkRateLimit({
+        const rateLimit = await checkRateLimit({
             key: `recommendations:${ip}`,
             limit: 30,
             windowMs: 60_000,

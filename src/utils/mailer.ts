@@ -1,10 +1,9 @@
 import { UserModel } from '@/models/user.model';
 import { Resend } from 'resend';
 import crypto from "crypto";
-import { env } from '@/utils/env';
-import util from 'util';
+import { env, isProduction } from '@/utils/env';
 
-
+const VERIFY_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // lazy Resend client so importing the module doesn't require the env var at build
 let _resendClient: Resend | null = null;
@@ -16,85 +15,52 @@ function getResendClient() {
 
 export async function sendMail({ email, emailType, userId }: {
   email: string;
-  emailType: string;
+  emailType: "signup";
   userId: string;
 }) {
+  if (emailType !== "signup") {
+    throw new Error(`Unsupported emailType: ${emailType}`);
+  }
 
   try {
     const domain = env.DOMAIN;
     const mailFrom = env.MAIL_FROM || "onboarding@resend.dev";
     const resend = getResendClient();
+
+    // Store only a SHA-256 hash of the token; the raw token goes in the email.
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
-    const verifyEmailHtml = `
-    <p>Click <a href="${domain}/verify-email?token=${rawToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
-    or copy and paste the following link in your browser.
-    </p>
-    ${domain}/verify-email?token=${rawToken}
+    const verifyUrl = `${domain}/verify-email?token=${rawToken}`;
+    const htmlBody = `
+    <p>Click <a href="${verifyUrl}">here</a> to verify your email,
+    or copy and paste the following link in your browser.</p>
+    <p>${verifyUrl}</p>
     <p>If you didn't request this, please ignore this email.</p>
   `;
 
-    const resetPasswordHtml = `
-      <p>Click <a href="${domain}/reset-password?token=${rawToken}">here</a> to ${emailType === "signup" ? "verify your email" : "reset your password"}
-      or copy and paste the following link in your browser.
-      </p>
-      ${domain}/reset-password?token=${rawToken}
-      <p>If you didn't request this, please ignore this email.</p>
-    `;
+    await UserModel.findByIdAndUpdate(userId, {
+      $set: {
+        verifyEmailToken: hashedToken,
+        verifyEmailTokenExpires: Date.now() + VERIFY_TOKEN_TTL_MS,
+      },
+    });
 
-    let subjectLine = "";
-    let htmlBody = ``;
-
-    switch (emailType) {
-      case "signup":
-        subjectLine = "Verify Your Email";
-        htmlBody = verifyEmailHtml;
-        await UserModel.findByIdAndUpdate(userId, {
-          $set: {
-            verifyEmailToken: hashedToken,
-            verifyEmailTokenExpires: Date.now() + 3600000
-          }
-        });
-        break;
-      case "reset-password":
-        subjectLine = "Reset Password Email"
-        htmlBody = resetPasswordHtml;
-        await UserModel.findByIdAndUpdate(userId, {
-          $set: {
-            resetPasswordToken: hashedToken,
-            resetPasswordExpires: Date.now() + 3600000
-          }
-        });
-        break;
-      default:
-        throw new Error(`Unknown emailType: ${emailType}`);
-    }
-
-    const options = {
+    const mailResponse = await resend.emails.send({
       from: mailFrom,
       to: email,
-      subject: subjectLine,
+      subject: "Verify Your Email",
       html: htmlBody,
-    };
+    });
 
-    const mailResponse = await resend.emails.send(options);
-    try {
-      // Log a detailed inspected representation of the response (truncated)
-      const inspected = util.inspect(mailResponse, { depth: 5, colors: false });
-      console.info("Resend send response (inspected):", inspected.slice(0, 2000));
-    } catch (e) {
-      // ignore logging errors
+    if (!isProduction) {
+      console.info("Verification email dispatched");
     }
 
     return mailResponse;
-
-  }
-  catch (err: unknown) {
-    // Log full error for diagnostics (do not print secrets)
+  } catch (err: unknown) {
+    // Log the error message for diagnostics (never the token or other secrets).
     console.error("Mailer error:", err instanceof Error ? err.message : err);
-    const message = err instanceof Error ? err.message : "Error sending email";
-    throw new Error(message);
-
+    throw new Error(err instanceof Error ? err.message : "Error sending email");
   }
 }

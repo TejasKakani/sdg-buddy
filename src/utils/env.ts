@@ -11,6 +11,9 @@ const envSchema = z.object({
   HUGGINGFACE_API_KEY: z.string().optional(),
   HUGGINGFACE_MODEL: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
+  // Optional: enables durable, cross-instance rate limiting on serverless.
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -24,6 +27,8 @@ const parsed = envSchema.safeParse({
   HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
   HUGGINGFACE_MODEL: process.env.HUGGINGFACE_MODEL,
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
 if (!parsed.success) {

@@ -19,7 +19,7 @@ export async function POST(
         }
 
         const ip = getRequestIdentifier(req.headers.get("x-forwarded-for"), "unknown");
-        const rateLimit = checkRateLimit({
+        const rateLimit = await checkRateLimit({
             key: `signin:${ip}`,
             limit: 10,
             windowMs: 60_000,
@@ -57,6 +57,16 @@ export async function POST(
 
         if(!validPassword){
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+        }
+
+        if (!user.isVerified) {
+            return NextResponse.json(
+                {
+                    error: "Please verify your email before signing in. Check your inbox for the verification link.",
+                    code: "EMAIL_NOT_VERIFIED",
+                },
+                { status: 403 }
+            );
         }
 
         const tokenPayload = {

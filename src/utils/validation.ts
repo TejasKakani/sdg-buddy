@@ -15,6 +15,10 @@ export const verifyEmailTokenSchema = z.object({
   token: z.string().trim().min(20).max(256),
 });
 
+export const resendVerificationSchema = z.object({
+  email: z.string().trim().email().toLowerCase(),
+});
+
 export const actionLogSchema = z.object({
   description: z.string().trim().min(3).max(1000),
 });

@@ -30,6 +30,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -81,8 +84,10 @@ export default function LoginScreen() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setNeedsVerification(false);
+    setResendMessage(null);
     setIsSubmitting(true);
-    
+
     try {
       const response = await fetch('/api/users/sign-in', {
         method: 'POST',
@@ -92,12 +97,15 @@ export default function LoginScreen() {
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         let message = 'Failed to sign in';
         try {
           const data = await response.json();
           message = typeof data === 'string' ? data : (data?.error || message);
+          if (data?.code === 'EMAIL_NOT_VERIFIED') {
+            setNeedsVerification(true);
+          }
         } catch {}
         throw new Error(message);
       }
@@ -114,6 +122,29 @@ export default function LoginScreen() {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendMessage(null);
+    setIsResending(true);
+    try {
+      const response = await fetch('/api/users/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+        credentials: 'include',
+      });
+      const data = await response.json().catch(() => null);
+      setResendMessage(
+        data?.message || 'If an account exists for that email, a new verification link has been sent.'
+      );
+    } catch {
+      setResendMessage('Could not resend the verification email. Please try again shortly.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -171,6 +202,21 @@ export default function LoginScreen() {
             </div>
             {error && (
               <p className="text-red-400 text-sm" role="alert">{error}</p>
+            )}
+            {needsVerification && (
+              <div className="text-sm">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResending || !email}
+                  className="font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors underline"
+                >
+                  {isResending ? 'Sending…' : 'Resend verification email'}
+                </button>
+              </div>
+            )}
+            {resendMessage && (
+              <p className="text-emerald-400 text-sm" role="status">{resendMessage}</p>
             )}
             <div className="pt-2">
               <button 

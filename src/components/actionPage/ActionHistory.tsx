@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import type { ActionHistoryItem } from "@/types/action";
 import { getSDGColor, getSDGName, getSDGLogo } from "@/constants/sdgGoals";
 
@@ -18,29 +19,42 @@ interface ActionHistoryProps {
 export default function ActionHistory({ compact = false }: ActionHistoryProps) {
   const [actions, setActions] = useState<ActionHistoryItem[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActions = useCallback(async (page: number = 1) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/actions?page=${page}&limit=10`);
-      if (!res.ok) throw new Error("Failed to load action history");
-      const data = await res.json();
-      setActions(data.actions);
-      setPagination(data.pagination);
-    } catch (err) {
-      console.error("Error fetching action history:", err);
-      setError("Could not load action history.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Fetch is inlined as a promise chain so all setState calls happen inside
+  // async callbacks (never synchronously in the effect body). Loading is shown
+  // via the initial state on mount and via goToPage() on page change. The
+  // AbortController cancels in-flight requests when the page changes or the
+  // component unmounts.
   useEffect(() => {
-    fetchActions();
-  }, [fetchActions]);
+    const controller = new AbortController();
+
+    fetch(`/api/actions?page=${page}&limit=10`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load action history");
+        return res.json();
+      })
+      .then((data) => {
+        setActions(data.actions);
+        setPagination(data.pagination);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        console.error("Error fetching action history:", err);
+        setError("Could not load action history.");
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, [page]);
+
+  const goToPage = (nextPage: number) => {
+    setLoading(true);
+    setPage(nextPage);
+  };
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -100,9 +114,11 @@ export default function ActionHistory({ compact = false }: ActionHistoryProps) {
                       }}
                       title={getSDGName(sdgId)}
                     >
-                      <img
+                      <Image
                         src={getSDGLogo(sdgId)}
                         alt=""
+                        width={14}
+                        height={14}
                         className="w-3.5 h-3.5 rounded-sm object-cover"
                       />
                       SDG {sdgId}
@@ -120,7 +136,7 @@ export default function ActionHistory({ compact = false }: ActionHistoryProps) {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-4">
               <button
-                onClick={() => fetchActions(pagination.page - 1)}
+                onClick={() => goToPage(pagination.page - 1)}
                 disabled={pagination.page <= 1}
                 className="px-3 py-1.5 text-sm rounded-md border border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
               >
@@ -130,7 +146,7 @@ export default function ActionHistory({ compact = false }: ActionHistoryProps) {
                 Page {pagination.page} of {pagination.totalPages}
               </span>
               <button
-                onClick={() => fetchActions(pagination.page + 1)}
+                onClick={() => goToPage(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
                 className="px-3 py-1.5 text-sm rounded-md border border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
               >

@@ -13,6 +13,8 @@
     "@google/generative-ai": "^0.24.1",
     "@huggingface/inference": "^4.13.15",
     "@khmyznikov/pwa-install": "^0.6.3",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcrypt": "^6.0.0",
     "chart.js": "^4.5.1",
     "jose": "^6.2.3",
