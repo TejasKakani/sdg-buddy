@@ -6,23 +6,32 @@ import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { isAppInstalled, registerPwaServiceWorker } from "@/utils/pwa";
 
+interface CustomWindow extends Window {
+  MSStream?: unknown;
+  opera?: unknown;
+}
+
+type InstallPromptHolder = Window & {
+  __sdgBuddyInstallPrompt?: { prompt?: () => Promise<void> } | null;
+};
+
 export default function PWAInstallButton() {
   const pwaInstallRef = useRef<PWAInstallElement | null>(null);
   const [deferredPromptEvent, setDeferredPromptEvent] = useState<Event | null>(null);
   const [isInstalled] = useState<boolean>(() => isAppInstalled());
   const isProduction = process.env.NODE_ENV === "production";
-  type InstallPromptHolder = Window & {
-    __sdgBuddyInstallPrompt?: { prompt?: () => Promise<void> } | null;
-  };
 
-  // Put this near your other state hooks
-  const [isIOS, setIsIOS] = useState(false);
+  // Fix: Initialize state lazily with SSR protection to completely bypass the eslint hook error
+  const [isIOS, setIsIOS] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    
+    const win = window as CustomWindow;
+    const userAgent = navigator.userAgent || navigator.vendor || String(win.opera || "");
+    const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
+    const hasMSStream = !!win.MSStream;
 
-  useEffect(() => {
-    // Simple iOS detection
-    const checkIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(checkIOS);
-  }, []);
+    return isIOSDevice && !hasMSStream;
+  });
 
   useEffect(() => {
     if (isProduction) {
@@ -69,7 +78,6 @@ export default function PWAInstallButton() {
     // In development, capture the browser's beforeinstallprompt so the dev mock can use it.
     const devWindow = window as InstallPromptHolder;
     const devHandleBeforeInstallPrompt = (event: Event) => {
-      // prevent automatic prompt and store for later
       try {
         event.preventDefault();
       } catch {}
@@ -123,9 +131,7 @@ export default function PWAInstallButton() {
 
       if (promptEvent && typeof promptEvent.prompt === "function") {
         try {
-          // Show the native prompt if available
           await promptEvent.prompt();
-          // Optionally clear stored prompt
           wnd.__sdgBuddyInstallPrompt = null;
           return;
         } catch (e) {
@@ -133,15 +139,12 @@ export default function PWAInstallButton() {
         }
       }
 
-      // Try to register service worker to approximate install readiness
       try {
         await registerPwaServiceWorker();
       } catch (e) {
         console.error(e);
       }
 
-      // Fallback: show guidance to test in production build
-      // show a simple alert as a hint for developers
       alert(
         "Install prompt not available in development. Build production or set NODE_ENV=production to test the real install flow."
       );
