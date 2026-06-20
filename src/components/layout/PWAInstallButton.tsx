@@ -15,6 +15,15 @@ export default function PWAInstallButton() {
     __sdgBuddyInstallPrompt?: { prompt?: () => Promise<void> } | null;
   };
 
+  // Put this near your other state hooks
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Simple iOS detection
+    const checkIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(checkIOS);
+  }, []);
+
   useEffect(() => {
     if (isProduction) {
       void import("@khmyznikov/pwa-install");
@@ -78,6 +87,14 @@ export default function PWAInstallButton() {
     const installElement = pwaInstallRef.current;
 
     if (!installElement) {
+      return;
+    }
+
+    // iOS doesn't use standard prompt events. Force the component to show its built-in tooltip/modal instructions
+    if (isIOS) {
+      if (typeof installElement.showDialog === "function") {
+        installElement.showDialog();
+      }
       return;
     }
 
@@ -158,7 +175,7 @@ export default function PWAInstallButton() {
         manualApple
         manualChrome
         useLocalStorage
-        manifestUrl="/manifest.webmanifest"
+        manifestUrl="/manifest.json"
         name="SDG Buddy"
         description="Track sustainable actions and install SDG Buddy as an app on your device."
         icon="/icon-192.png"

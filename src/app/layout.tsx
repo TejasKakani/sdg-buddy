@@ -10,9 +10,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SDG Buddy | Sustainable Action Tracker Platform",
+  title: "SDG Buddy",
   description: "A platform designed to help individuals align their daily actions with the united nation sustainable development goals (UNSDGs).",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "SDG Buddy",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: "/icon-192.png",
     shortcut: "/icon-192.png",

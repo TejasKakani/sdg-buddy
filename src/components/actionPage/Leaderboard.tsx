@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 // Add an interface for the raw API data to avoid using 'any'
 interface ApiLeaderboardItem {
   name?: string;
+  username?: string;
   totalPoints: number;
 }
 
@@ -36,6 +37,7 @@ export default function Leaderboard() {
           const formattedLeaderboard = rawLeaderboard.map((user: ApiLeaderboardItem, index: number) => ({
             rank: index + 1,  
             name: user.name || "Unknown user",
+            username: user.username || "Unknown username",
             points: user.totalPoints || 0,
           }));
           setLeaderboard(formattedLeaderboard);
@@ -101,8 +103,11 @@ export default function Leaderboard() {
                     {/* Fun UX touch: Add medals for top 3 */}
                     {user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : user.rank === 3 ? '🥉' : user.rank}
                   </span>
-                  <span className={isCurrentUser ? "text-emerald-800 font-bold" : "text-slate-700 font-medium"}>
+                  <span className={`font-medium ${isCurrentUser ? "text-emerald-800" : "text-slate-700"} flex flex-col`}>
                     {user.name}
+                    <span className="text-slate-400 text-xs ml-1">
+                      @{user.username}
+                    </span>
                   </span>
                 </div>
                 <span className={`font-semibold ${

@@ -160,6 +160,9 @@ export default function ImpactChart() {
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 disabled:opacity-50"
             >
+              <option key="select year" value="" disabled>
+                Select year
+              </option>
               {years.map((year) => (
                 <option key={year} value={year}>
                   {year}

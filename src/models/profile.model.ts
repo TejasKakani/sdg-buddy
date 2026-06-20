@@ -19,6 +19,7 @@ export interface Profile{
     _id: mongoose.Types.ObjectId;
     user: mongoose.Types.ObjectId;
     name: string;
+    username: string;
     totalPoints: number;
     currentStreak: number;
     acheivements: number;
@@ -30,6 +31,7 @@ export interface Profile{
 const ProfileSchema: Schema<Profile> = new mongoose.Schema<Profile>({
     user: {type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true},
     name: {type: String, required: true},
+    username: {type: String, required: true, unique: true},
     totalPoints: {type: Number, default: 0},
     currentStreak: {type: Number, default: 0},
     acheivements: {type: Number, default: 0},

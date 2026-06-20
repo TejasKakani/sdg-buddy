@@ -8,6 +8,7 @@ export interface User {
   export interface LeaderboardUser {
     rank: number;
     name: string;
+    username: string;
     points: number;
   }
   

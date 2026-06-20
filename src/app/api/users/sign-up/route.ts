@@ -65,6 +65,7 @@ export async function POST(
         const userProfile = new ProfileModel({
             user: savedUser._id,
             name: savedUser.name,
+            username: savedUser.username,
         });
         
         await userProfile.save();
